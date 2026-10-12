@@ -78,12 +78,12 @@ export function getLot(pid: string, slug: string): Lot | null {
 	};
 }
 
-/** Renders present on disk for a batch (files `<id>-<format>.png`). */
+/** Renders present on disk for a batch (files `<id>-<format>.png`), in the batch's formats only. */
 export function lotRenders(pid: string, lot: Lot): Renders {
 	const dir = lotDir(pid, lot.slug);
 	const out: Renders = {};
 	for (const item of lot.items) {
-		for (const f of FORMATS.concat(lot.formats)) {
+		for (const f of lot.formats) {
 			const file = join(dir, `${item.id}-${f}.png`);
 			if (!existsSync(file)) continue;
 			(out[item.id] ??= {})[f] = `${fileUrl(file)}?v=${Math.round(statSync(file).mtimeMs)}`;
