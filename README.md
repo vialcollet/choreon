@@ -9,8 +9,13 @@ Brief → storyboard → shots coded frame by frame → critique and auto-fix �
 Open source, local-first, runs on your Claude subscription or API key.
 </p>
 
-<p align="center"><a href="docs/media/choreon-explainer.mp4"><img src="docs/media/choreon-explainer.gif" alt="Choreon explains itself, in a film made by Choreon" width="720"></a><br>
-<sub><b>Choreon, explained by Choreon.</b> 45 s with voice-over, made with Choreon: framing, storyboard, the voice recorded in one take and the shots cut to its words, 11 coded shots, critique and fixes, edit, music and sound. The few touch-ups done by hand along the way each became a fix in the studio. Click for the MP4 with sound.</sub></p>
+https://github.com/user-attachments/assets/1227f04e-097f-4e79-b2d3-5584dae4a375
+
+<p align="center"><sub><b>Choreon, explained by Choreon.</b> 45 s with voice-over, made with Choreon: framing, storyboard, the voice recorded in one take and the shots cut to its words, 11 coded shots, critique and fixes, edit, music and sound. The few touch-ups done by hand along the way each became a fix in the studio.</sub></p>
+
+https://github.com/user-attachments/assets/8589e766-78e5-4c05-9a26-020e1c1c4fe0
+
+<p align="center"><sub><b>Sorbet teaser, 8 s, in one go.</b> Made from a fresh install during the release test, every step through the UI, with no touch-up by hand: framing, storyboard, voice-over, 2 coded shots with three rounds of critique, edit and sound, for about $16 at API prices. No music: the optional Mixkit bank wasn't installed.</sub></p>
 
 <p align="center">More films made with Choreon: <a href="docs/media/choreon-final-cut.mp4">Choreon launch cut (25 s)</a> · <a href="docs/media/sorbet-brain-freeze.mp4">Sorbet "Brain freeze" (20 s)</a> · <a href="docs/media/sorbet-launch.mp4">Sorbet launch film (20 s)</a> · <a href="docs/media/sorbet-logo.mp4">Sorbet logo reveal (6 s)</a><br>
 <sub>Sorbet is a fictional brand; its brief ships in <code>scripts/seed-demo.ts</code>.</sub></p>

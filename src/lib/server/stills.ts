@@ -134,14 +134,15 @@ export function createLot(pid: string, name: string, template: string, formats: 
 	return slug;
 }
 
-/** Deletes renders of items that are no longer in the batch. */
+/** Deletes renders of items that are no longer in the batch, and of formats the batch no longer has. */
 export function pruneRenders(pid: string, lot: Lot) {
 	const dir = lotDir(pid, lot.slug);
 	if (!existsSync(dir)) return;
 	const keep = new Set(lot.items.map((i) => i.id));
+	const formats = new Set(lot.formats);
 	for (const f of readdirSync(dir)) {
-		const m = /^(.+)-\d{3,4}x\d{3,4}\.png$/.exec(f);
-		if (m && !keep.has(m[1])) unlinkSync(join(dir, f));
+		const m = /^(.+)-(\d{3,4}x\d{3,4})\.png$/.exec(f);
+		if (m && (!keep.has(m[1]) || !formats.has(m[2]))) unlinkSync(join(dir, f));
 	}
 }
 
