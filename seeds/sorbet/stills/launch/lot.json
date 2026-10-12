@@ -1,0 +1,61 @@
+{
+	"name": "Launch",
+	"template": "three-scoops",
+	"formats": ["1080x1350", "1080x1920", "1080x1080"],
+	"items": [
+		{
+			"id": "SB-0001",
+			"vars": {
+				"theme": "light",
+				"eyebrow": "Team planner",
+				"headline": "Your week, in three scoops.",
+				"sub": "Sorbet turns the pile of meetings, pings and to-dos into three clear priorities.",
+				"mess": [{ "text": "Sync?" }, { "text": "Re: Re: deck v7" }, { "text": "Standup" }, { "text": "Budget review" }, { "text": "1:1 moved" }, { "text": "Ping from Sam" }, { "text": "Ideas doc" }, { "text": "Q4 planning" }],
+				"matters_label": "What matters",
+				"matters": [{ "text": "Ship the beta" }, { "text": "Hire a designer" }],
+				"next_label": "What's next",
+				"next": [{ "text": "Client demo Thu" }, { "text": "Q4 roadmap" }],
+				"wait_label": "What can wait",
+				"wait": [{ "text": "Rebrand ideas" }, { "text": "Team offsite" }],
+				"cta": "Scoop your week",
+				"note": "Free for teams up to 10"
+			}
+		},
+		{
+			"id": "SB-0002",
+			"vars": {
+				"theme": "dark",
+				"eyebrow": "For team leads",
+				"headline": "Sunday night dread, sorted.",
+				"sub": "Drop in the chaos. Monday starts with three scoops, not forty tabs.",
+				"mess": [{ "text": "Inbox (214)" }, { "text": "Quick call?" }, { "text": "Retro notes" }, { "text": "Hiring loop" }, { "text": "Who owns this?" }, { "text": "Slides v12" }, { "text": "OKR draft" }, { "text": "Lunch & learn" }],
+				"matters_label": "What matters",
+				"matters": [{ "text": "Launch plan" }, { "text": "Unblock Priya" }, { "text": "Board update" }],
+				"next_label": "What's next",
+				"next": [{ "text": "Hiring loop" }, { "text": "Retro" }],
+				"wait_label": "What can wait",
+				"wait": [{ "text": "Slides polish" }],
+				"cta": "Try Sorbet free",
+				"note": "Set up in 2 minutes"
+			}
+		},
+		{
+			"id": "SB-0003",
+			"vars": {
+				"theme": "light",
+				"eyebrow": "New",
+				"headline": "Less pile. More plan.",
+				"sub": "One shared view of what your team should do now, next, and later.",
+				"mess": [{ "text": "Bug bash" }, { "text": "Design crit" }, { "text": "Re: pricing" }, { "text": "Vendor call" }, { "text": "Docs PR" }, { "text": "Weekly sync" }],
+				"matters_label": "What matters",
+				"matters": [{ "text": "Fix checkout bug" }],
+				"next_label": "What's next",
+				"next": [{ "text": "Pricing page" }, { "text": "Design crit" }, { "text": "Docs PR" }],
+				"wait_label": "What can wait",
+				"wait": [{ "text": "Vendor call" }, { "text": "Swag order" }],
+				"cta": "Plan your week",
+				"note": ""
+			}
+		}
+	]
+}

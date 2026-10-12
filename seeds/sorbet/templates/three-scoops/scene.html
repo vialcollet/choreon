@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Still — Three scoops</title></head>
+<body>
+<div id="root"></div>
+<script type="module">
+	// Still template "Three scoops" (Sorbet): a messy week (scattered cards) is scooped into
+	// three solid priorities — what matters (raspberry, the hero), what's next (mango), what can
+	// wait (mint) — each scoop sitting on a cup that lists its items. Headline and sub on top,
+	// logo and CTA at the bottom. Static image: no animation, the scene only depends on window.VARS.
+	//
+	// Variables (window.VARS, injected by engine/still.mjs):
+	//   format {width, height} · theme ('light' | 'dark') · eyebrow · headline · sub
+	//   mess [{text}] · matters_label · matters [{text}] · next_label · next [{text}]
+	//   wait_label · wait [{text}] · cta · note
+	//
+	// Fit: every size is a multiple of `k`; the layout is rebuilt with a smaller k until nothing
+	// overflows (text never clipped, nothing outside the frame).
+	import { scene } from '/engine/motion.js';
+
+	const V = Object.assign(
+		{
+			format: { width: 1080, height: 1350 },
+			theme: 'light',
+			eyebrow: 'Team planner',
+			headline: 'Your week, in three scoops.',
+			sub: 'Sorbet turns the pile of meetings, pings and to-dos into three clear priorities.',
+			mess: ['Sync?', 'Re: Re: deck v7', 'Standup', 'Budget review', '1:1 moved', 'Ping from Sam', 'Ideas doc', 'Q4 planning'],
+			matters_label: 'What matters',
+			matters: ['Ship the beta', 'Hire a designer'],
+			next_label: "What's next",
+			next: ['Client demo Thu', 'Q4 roadmap'],
+			wait_label: 'What can wait',
+			wait: ['Rebrand ideas', 'Team offsite'],
+			cta: 'Scoop your week',
+			note: 'Free for teams up to 10'
+		},
+		window.VARS || {}
+	);
+	const W = V.format.width, H = V.format.height;
+	const ratio = H / W;
+	const tall = ratio > 1.5; // 9:16 — Stories/Reels UI covers the top ~12 % and the bottom ~15 %
+	const square = ratio < 1.1;
+	const dark = V.theme === 'dark';
+
+	const list = (a) => (Array.isArray(a) ? a : [])
+		.map((x) => (typeof x === 'string' ? x : x?.text ?? x?.label ?? ''))
+		.map((s) => String(s).trim())
+		.filter(Boolean);
+
+	scene({
+		width: W, height: H, duration: 1, fps: 30, mode: 'dom',
+		background: dark ? '#120e22' : '#fff7ee',
+		async setup(ctx) {
+			const C = {
+				cream: '#fff7ee', milk: '#ffffff', wafer: '#f1e6d8', plum_ink: '#1c1530', plum_soft: '#6b6080',
+				plum_night: '#120e22', raspberry: '#ff4f79', mango: '#ffb02e', mint: '#2fd3ae',
+				...(ctx.brand?.colors || {})
+			};
+			const u = W / 1080; // 1 unit = 1 px at 1080 wide
+			const T = dark
+				? { bg: C.plum_night, ink: C.cream, soft: '#a59bbb', card: C.plum_ink, border: '#2f2747', btn: C.cream, btnInk: C.plum_ink, logo: '/project/brand/logo/logo-sorbet-dark-bg.svg' }
+				: { bg: C.cream, ink: C.plum_ink, soft: C.plum_soft, card: C.milk, border: C.wafer, btn: C.plum_ink, btnInk: C.cream, logo: '/project/brand/logo/logo-sorbet.svg' };
+
+			const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+			const mess = list(V.mess).slice(0, square ? 5 : 8);
+			const scoops = [
+				{ label: V.matters_label || 'What matters', items: list(V.matters).slice(0, 3), color: C.raspberry, hero: true },
+				{ label: V.next_label || "What's next", items: list(V.next).slice(0, 3), color: C.mango },
+				{ label: V.wait_label || 'What can wait', items: list(V.wait).slice(0, 3), color: C.mint }
+			];
+			const maxItems = Math.max(1, ...scoops.map((s) => s.items.length));
+
+			// Base sizes per format (px at 1080 wide, before k).
+			const B = tall
+				? { pad: 80, h1: 124, sub: 40, eyebrow: 28, chip: 28, D: 296, label: 46, item: 30, cta: 34, note: 26, logo: 70, gap: 1 }
+				: square
+					? { pad: 64, h1: 92, sub: 32, eyebrow: 24, chip: 23, D: 220, label: 36, item: 25, cta: 29, note: 22, logo: 56, gap: 0.85 }
+					: { pad: 72, h1: 108, sub: 36, eyebrow: 26, chip: 26, D: 262, label: 42, item: 28, cta: 32, note: 24, logo: 64, gap: 0.9 };
+			const padTop = tall ? H * 0.12 : B.pad * u;
+			const padBot = tall ? H * 0.15 : B.pad * u;
+			// Scattered cards: fixed pseudo-random tilt and nudge (deterministic, no animation).
+			const tilt = [-3, 2, -1.5, 3, -2, 1.5, -3, 2];
+			const nudge = [3, -4, 4, -2, 4, -4, 2, -3];
+
+			const style = document.createElement('style');
+			document.head.appendChild(style);
+			ctx.root.innerHTML = `
+				<div class="ad">
+					${V.eyebrow ? `<div class="eyebrow fit">${esc(V.eyebrow)}</div>` : ''}
+					<h1 class="fit">${esc(V.headline)}</h1>
+					${V.sub ? `<p class="sub fit">${esc(V.sub)}</p>` : ''}
+					<div class="visual">
+						<div class="inner">
+							${mess.length ? `<div class="mess">${mess.map((m, i) => `<div class="chip fit" style="--r:${tilt[i % 8]}deg; --y:${nudge[i % 8]}"><i></i>${esc(m)}</div>`).join('')}</div>
+							<div class="arrow"><svg viewBox="0 0 24 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v34M4 28l8 8 8-8"/></svg></div>` : ''}
+							<div class="scoops">
+								${scoops.map((s) => `
+									<div class="col${s.hero ? ' hero' : ''}">
+										<div class="scoopbox"><div class="scoop" style="background:${s.color}"><span class="label">${esc(s.label)}</span></div></div>
+										<div class="cup">${s.items.map((t) => `<div class="item fit">${esc(t)}</div>`).join('')}</div>
+									</div>`).join('')}
+							</div>
+						</div>
+					</div>
+					<footer>
+						<img src="${T.logo}" alt="Sorbet" />
+						<div class="act">
+							${V.note ? `<div class="note fit">${esc(V.note)}</div>` : ''}
+							${V.cta ? `<div class="cta fit">${esc(V.cta)}</div>` : ''}
+						</div>
+					</footer>
+				</div>`;
+
+			const build = (k) => {
+				const s = (v) => `${(v * k * u).toFixed(2)}px`;
+				const px = (v) => `${(v * u).toFixed(2)}px`;
+				const D = B.D * (maxItems > 2 ? 0.94 : 1);
+				const g = B.gap;
+				style.textContent = `
+					* { box-sizing: border-box; margin: 0; }
+					#root { width: ${W}px; height: ${H}px; overflow: hidden; background: ${T.bg}; }
+					.ad { width: ${W}px; height: ${H}px; display: flex; flex-direction: column; padding: ${padTop}px ${px(B.pad)} ${padBot}px; font-family: Inter, sans-serif; color: ${T.ink}; }
+					.eyebrow { align-self: flex-start; font-weight: 500; font-size: ${s(B.eyebrow)}; line-height: 1; color: ${T.ink}; border: ${px(2)} solid ${T.border}; background: ${T.card}; border-radius: 999px; padding: ${s(12)} ${s(22)}; margin-bottom: ${s(30 * g)}; white-space: nowrap; max-width: 100%; text-overflow: ellipsis; }
+					h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: ${s(B.h1)}; line-height: 0.98; letter-spacing: -0.03em; text-wrap: balance; padding-bottom: 0.06em; flex: none; }
+					.sub { font-weight: 400; font-size: ${s(B.sub)}; line-height: 1.32; color: ${T.soft}; margin-top: ${s(22 * g)}; max-width: ${square ? '100%' : px(880)}; text-wrap: balance; flex: none; }
+					.visual { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: ${s(36 * g)} 0 ${s(40 * g)}; }
+					.inner { display: flex; flex-direction: column; align-items: center; }
+					.mess { display: flex; flex-wrap: wrap; justify-content: center; max-width: ${px(square ? 900 : 860)}; padding: 0 ${s(8)}; }
+					.chip { display: flex; align-items: center; gap: ${s(12)}; font-weight: 500; font-size: ${s(B.chip)}; line-height: 1; color: ${T.soft}; white-space: nowrap; background: ${T.card}; border: ${px(2)} solid ${T.border}; border-radius: ${px(16)}; padding: ${s(16)} ${s(20)}; margin: ${s(-4)} ${s(-2)}; transform: translateY(calc(var(--y) * ${(k * u).toFixed(3)}px)) rotate(var(--r)); }
+					.chip i { width: ${s(14)}; height: ${s(14)}; border-radius: 50%; border: ${px(2)} solid ${T.soft}; flex: none; }
+					.arrow { color: ${T.ink}; height: ${s(64 * g)}; margin: ${s(22 * g)} 0 ${s(14 * g)}; display: flex; }
+					.arrow svg { height: 100%; width: auto; }
+					.scoops { display: grid; grid-template-columns: 1.12fr 1fr 1fr; gap: ${s(22)}; width: 100%; align-items: stretch; }
+					.col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+					.scoopbox { height: ${s(D)}; width: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; z-index: 1; }
+					.scoop { width: ${s(D * 0.86)}; height: ${s(D * 0.86)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; }
+					.hero .scoop { width: ${s(D)}; height: ${s(D)}; }
+					.label { display: block; width: 76%; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: ${s(B.label * 0.9)}; line-height: 0.98; letter-spacing: -0.03em; color: ${C.plum_ink}; text-wrap: balance; }
+					.hero .label { font-size: ${s(B.label)}; }
+					.cup { flex: 1; width: 100%; margin-top: ${s(-D * 0.3)}; padding: ${s(D * 0.3 + 12)} ${s(18)} ${s(18)}; background: ${T.card}; border: ${px(2)} solid ${T.border}; border-radius: ${px(16)}; display: flex; flex-direction: column; justify-content: center; gap: 0; }
+					.hero .cup { border-color: ${C.raspberry}; }
+					.item { font-weight: 500; font-size: ${s(B.item)}; line-height: 1.2; text-align: center; padding: ${s(14)} 0; text-wrap: balance; overflow-wrap: break-word; }
+					.item + .item { border-top: ${px(2)} solid ${T.border}; }
+					footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: ${s(28)}; }
+					footer img { height: ${s(B.logo)}; width: auto; display: block; margin-left: ${s(-B.logo * 0.15)}; flex: none; }
+					.act { display: flex; align-items: center; gap: ${s(24)}; min-width: 0; }
+					.note { font-weight: 400; font-size: ${s(B.note)}; line-height: 1.25; color: ${T.soft}; text-align: right; max-width: ${s(300)}; text-wrap: balance; }
+					.cta { font-weight: 600; font-size: ${s(B.cta)}; line-height: 1; white-space: nowrap; background: ${T.btn}; color: ${T.btnInk}; border-radius: 999px; padding: ${s(26)} ${s(40)}; flex: none; }
+				`;
+			};
+
+			await Promise.all([...ctx.root.querySelectorAll('img')].map((img) => (img.complete ? null : new Promise((r) => (img.onload = img.onerror = r)))));
+			await document.fonts.ready;
+
+			const ad = ctx.root.querySelector('.ad');
+			const visual = ctx.root.querySelector('.visual');
+			const inner = ctx.root.querySelector('.inner');
+			const footer = ctx.root.querySelector('footer');
+			// Fits each scoop label inside its circle (shrinks that label only).
+			const fitLabels = () => {
+				for (const sc of ctx.root.querySelectorAll('.scoop')) {
+					const lab = sc.querySelector('.label');
+					lab.style.fontSize = '';
+					let f = parseFloat(getComputedStyle(lab).fontSize);
+					const max = sc.clientWidth * 0.66;
+					while (f > 10 && (lab.scrollWidth > lab.clientWidth + 1 || lab.offsetHeight > max)) {
+						f *= 0.95;
+						lab.style.fontSize = `${f}px`;
+					}
+				}
+			};
+			const why = (r) => ((window.__WHY = r), true);
+			const overflows = () => {
+				if (ad.scrollHeight > H + 1) return why('ad ' + ad.scrollHeight);
+				const room = visual.clientHeight - parseFloat(getComputedStyle(visual).paddingTop) - parseFloat(getComputedStyle(visual).paddingBottom);
+				if (inner.offsetHeight > room + 1) return why('visual ' + inner.offsetHeight + '>' + room);
+				if (footer.scrollWidth > footer.clientWidth + 1) return why('footer');
+				for (const el of ctx.root.querySelectorAll('.fit')) if (el.scrollWidth > el.clientWidth + 1) return why('fit ' + el.className + ' ' + el.textContent + ' ' + el.scrollWidth + '/' + el.clientWidth + ' ' + el.scrollHeight + '/' + el.clientHeight);
+				const mess = ctx.root.querySelector('.mess');
+				if (mess && mess.scrollWidth > mess.clientWidth + 1) return why('mess');
+				window.__WHY = '';
+				return false;
+			};
+			let k = 1;
+			for (;;) {
+				build(k);
+				fitLabels();
+				if (!overflows() || k <= 0.5) break;
+				k -= 0.025;
+			}
+			window.__FIT = k;
+		},
+		draw() {}
+	});
+</script>
+</body>
+</html>

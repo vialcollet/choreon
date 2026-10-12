@@ -1,0 +1,207 @@
+{
+ "name": "Sorbet",
+ "fictional": true,
+ "tagline": "A sweeter way to plan your week.",
+ "colors": {
+  "cream": "#fff7ee",
+  "milk": "#ffffff",
+  "plum_ink": "#1c1530",
+  "plum_night": "#120e22",
+  "plum_soft": "#6b6080",
+  "wafer": "#f1e6d8",
+  "raspberry": "#ff4f79",
+  "mango": "#ffb02e",
+  "mint": "#2fd3ae",
+  "lilac": "#b9a6ff"
+ },
+ "fonts": {
+  "display": {
+   "family": "Bricolage Grotesque",
+   "weights": [
+    400,
+    600,
+    800
+   ]
+  },
+  "ui": {
+   "family": "Inter",
+   "weights": [
+    400,
+    500,
+    600
+   ]
+  }
+ },
+ "fontFiles": {
+  "Bricolage Grotesque": {
+   "400": "/project/brand/fonts/BricolageGrotesque-Regular.ttf",
+   "600": "/project/brand/fonts/BricolageGrotesque-SemiBold.ttf",
+   "800": "/project/brand/fonts/BricolageGrotesque-ExtraBold.ttf"
+  },
+  "Inter": {
+   "400": "/project/brand/fonts/Inter-Regular.ttf",
+   "500": "/project/brand/fonts/Inter-Medium.ttf",
+   "600": "/project/brand/fonts/Inter-SemiBold.ttf"
+  }
+ },
+ "logo": {
+  "viewBox": [
+   1000,
+   300
+  ],
+  "order": [
+   "scoop_mint",
+   "scoop_mango",
+   "scoop_raspberry",
+   "l_s",
+   "l_o",
+   "l_r",
+   "l_b",
+   "l_e",
+   "l_t"
+  ],
+  "layers": {
+   "scoop_mint": {
+    "center": [
+     104,
+     182
+    ],
+    "bbox": [
+     46,
+     124,
+     162,
+     240
+    ],
+    "fill": "#2fd3ae"
+   },
+   "scoop_mango": {
+    "center": [
+     200,
+     182
+    ],
+    "bbox": [
+     142,
+     124,
+     258,
+     240
+    ],
+    "fill": "#ffb02e"
+   },
+   "scoop_raspberry": {
+    "center": [
+     152,
+     102
+    ],
+    "bbox": [
+     94,
+     44,
+     210,
+     160
+    ],
+    "fill": "#ff4f79"
+   },
+   "l_s": {
+    "center": [
+     353.7,
+     162.26
+    ],
+    "bbox": [
+     305.1,
+     107.77,
+     402.31,
+     216.74
+    ],
+    "fill": "#1c1530"
+   },
+   "l_o": {
+    "center": [
+     463.58,
+     162.26
+    ],
+    "bbox": [
+     409.88,
+     107.77,
+     517.28,
+     216.74
+    ],
+    "fill": "#1c1530"
+   },
+   "l_r": {
+    "center": [
+     567.87,
+     161.08
+    ],
+    "bbox": [
+     531.71,
+     108.16,
+     604.03,
+     214
+    ],
+    "fill": "#1c1530"
+   },
+   "l_b": {
+    "center": [
+     669.32,
+     144.81
+    ],
+    "bbox": [
+     615.12,
+     72.88,
+     723.51,
+     216.74
+    ],
+    "fill": "#1c1530"
+   },
+   "l_e": {
+    "center": [
+     783.51,
+     162.26
+    ],
+    "bbox": [
+     732.25,
+     107.77,
+     834.76,
+     216.74
+    ],
+    "fill": "#1c1530"
+   },
+   "l_t": {
+    "center": [
+     874.76,
+     152.06
+    ],
+    "bbox": [
+     839.38,
+     87.58,
+     910.14,
+     216.55
+    ],
+    "fill": "#1c1530"
+   }
+  },
+  "lockup": {
+   "bbox": [
+    46,
+    44,
+    910.14,
+    240
+   ],
+   "center": [
+    478.07,
+    142
+   ]
+  },
+  "files": {
+   "scoop_mint": "/project/brand/logo/scoop_mint.svg",
+   "scoop_mango": "/project/brand/logo/scoop_mango.svg",
+   "scoop_raspberry": "/project/brand/logo/scoop_raspberry.svg",
+   "l_s": "/project/brand/logo/l_s.svg",
+   "l_o": "/project/brand/logo/l_o.svg",
+   "l_r": "/project/brand/logo/l_r.svg",
+   "l_b": "/project/brand/logo/l_b.svg",
+   "l_e": "/project/brand/logo/l_e.svg",
+   "l_t": "/project/brand/logo/l_t.svg"
+  },
+  "full": "/project/brand/logo/logo-sorbet.svg"
+ }
+}

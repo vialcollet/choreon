@@ -1,0 +1,44 @@
+{
+	"name": "Three scoops",
+	"description": "A messy week (scattered cards) scooped into three solid priorities: what matters (raspberry), what's next (mango), what can wait (mint). Headline, sub, logo and CTA. Light (cream) or dark (plum_night).",
+	"formats": ["1080x1350", "1080x1920", "1080x1080"],
+	"fields": [
+		{ "key": "theme", "label": "Theme", "type": "select", "options": ["light", "dark"] },
+		{ "key": "eyebrow", "label": "Eyebrow (optional)", "type": "text", "placeholder": "Team planner" },
+		{ "key": "headline", "label": "Headline", "type": "text", "placeholder": "Your week, in three scoops." },
+		{ "key": "sub", "label": "Sub", "type": "textarea" },
+		{ "key": "mess", "label": "Messy week (up to 8 cards)", "type": "items", "columns": [{ "key": "text", "label": "Card" }] },
+		{ "key": "matters_label", "label": "Scoop 1 label (raspberry)", "type": "text", "placeholder": "What matters" },
+		{ "key": "matters", "label": "What matters (1–3)", "type": "items", "columns": [{ "key": "text", "label": "Item" }] },
+		{ "key": "next_label", "label": "Scoop 2 label (mango)", "type": "text", "placeholder": "What's next" },
+		{ "key": "next", "label": "What's next (1–3)", "type": "items", "columns": [{ "key": "text", "label": "Item" }] },
+		{ "key": "wait_label", "label": "Scoop 3 label (mint)", "type": "text", "placeholder": "What can wait" },
+		{ "key": "wait", "label": "What can wait (1–3)", "type": "items", "columns": [{ "key": "text", "label": "Item" }] },
+		{ "key": "cta", "label": "Button", "type": "text", "placeholder": "Scoop your week" },
+		{ "key": "note", "label": "Small print next to the button (optional)", "type": "text", "placeholder": "Free for teams up to 10" }
+	],
+	"defaults": {
+		"theme": "light",
+		"eyebrow": "Team planner",
+		"headline": "Your week, in three scoops.",
+		"sub": "Sorbet turns the pile of meetings, pings and to-dos into three clear priorities.",
+		"mess": [
+			{ "text": "Sync?" },
+			{ "text": "Re: Re: deck v7" },
+			{ "text": "Standup" },
+			{ "text": "Budget review" },
+			{ "text": "1:1 moved" },
+			{ "text": "Ping from Sam" },
+			{ "text": "Ideas doc" },
+			{ "text": "Q4 planning" }
+		],
+		"matters_label": "What matters",
+		"matters": [{ "text": "Ship the beta" }, { "text": "Hire a designer" }],
+		"next_label": "What's next",
+		"next": [{ "text": "Client demo Thu" }, { "text": "Q4 roadmap" }],
+		"wait_label": "What can wait",
+		"wait": [{ "text": "Rebrand ideas" }, { "text": "Team offsite" }],
+		"cta": "Scoop your week",
+		"note": "Free for teams up to 10"
+	}
+}

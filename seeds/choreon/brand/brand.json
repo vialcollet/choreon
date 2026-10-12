@@ -1,0 +1,240 @@
+{
+ "name": "Choreon",
+ "tagline": "You direct. Choreon animates.",
+ "colors": {
+  "night": "#0c0c0c",
+  "panel": "#151515",
+  "graphite": "#1e1e1d",
+  "line": "#2c2b28",
+  "mist": "#a3a19a",
+  "paper": "#f4f1e8",
+  "cue": "#ffd400",
+  "jade": "#3fcf8e",
+  "lilac": "#b48cff",
+  "signal": "#f0504a"
+ },
+ "fonts": {
+  "display": {
+   "family": "Geist",
+   "weights": [
+    400,
+    500,
+    600,
+    700
+   ]
+  },
+  "ui": {
+   "family": "Geist",
+   "weights": [
+    400,
+    500,
+    600
+   ]
+  },
+  "mono": {
+   "family": "Geist Mono",
+   "weights": [
+    400,
+    500
+   ]
+  },
+  "accent": {
+   "family": "Instrument Serif",
+   "weights": [
+    400
+   ],
+   "style": "italic"
+  }
+ },
+ "fontFiles": {
+  "Geist": {
+   "400": "/project/brand/fonts/Geist-Regular.ttf",
+   "500": "/project/brand/fonts/Geist-Medium.ttf",
+   "600": "/project/brand/fonts/Geist-SemiBold.ttf",
+   "700": "/project/brand/fonts/Geist-Bold.ttf"
+  },
+  "Geist Mono": {
+   "400": "/project/brand/fonts/GeistMono-Regular.ttf",
+   "500": "/project/brand/fonts/GeistMono-Medium.ttf"
+  },
+  "Instrument Serif": {
+   "400": "/project/brand/fonts/InstrumentSerif-Italic.ttf"
+  }
+ },
+ "logo": {
+  "viewBox": [
+   1000,
+   300
+  ],
+  "order": [
+   "ghost_1",
+   "ghost_2",
+   "key",
+   "l_c",
+   "l_h",
+   "l_o",
+   "l_r",
+   "l_e",
+   "l_o2",
+   "l_n"
+  ],
+  "layers": {
+   "ghost_1": {
+    "center": [
+     68,
+     200
+    ],
+    "bbox": [
+     42,
+     174,
+     94,
+     226
+    ],
+    "fill": "#3a3933"
+   },
+   "ghost_2": {
+    "center": [
+     140,
+     176
+    ],
+    "bbox": [
+     98,
+     134,
+     182,
+     218
+    ],
+    "fill": "#6d6b63"
+   },
+   "key": {
+    "center": [
+     228,
+     146
+    ],
+    "bbox": [
+     158,
+     76,
+     298,
+     216
+    ],
+    "fill": "#ffd400"
+   },
+   "l_c": {
+    "center": [
+     379.89,
+     151.15
+    ],
+    "bbox": [
+     336.89,
+     104.27,
+     422.9,
+     198.02
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_h": {
+    "center": [
+     470.2,
+     136.36
+    ],
+    "bbox": [
+     431.47,
+     76.72,
+     508.92,
+     196
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_o": {
+    "center": [
+     563.6,
+     151.15
+    ],
+    "bbox": [
+     519.5,
+     104.27,
+     607.7,
+     198.02
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_r": {
+    "center": [
+     644.33,
+     151.15
+    ],
+    "bbox": [
+     619.13,
+     106.29,
+     669.53,
+     196
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_e": {
+    "center": [
+     714.97,
+     151.15
+    ],
+    "bbox": [
+     671.88,
+     104.27,
+     758.06,
+     198.02
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_o2": {
+    "center": [
+     808.88,
+     151.15
+    ],
+    "bbox": [
+     764.78,
+     104.27,
+     852.98,
+     198.02
+    ],
+    "fill": "#f4f1e8"
+   },
+   "l_n": {
+    "center": [
+     903.13,
+     150.13
+    ],
+    "bbox": [
+     864.41,
+     104.27,
+     941.86,
+     196
+    ],
+    "fill": "#f4f1e8"
+   }
+  },
+  "lockup": {
+   "bbox": [
+    42,
+    76,
+    941.86,
+    226
+   ],
+   "center": [
+    491.93,
+    151
+   ]
+  },
+  "files": {
+   "ghost_1": "/project/brand/logo/ghost_1.svg",
+   "ghost_2": "/project/brand/logo/ghost_2.svg",
+   "key": "/project/brand/logo/key.svg",
+   "l_c": "/project/brand/logo/l_c.svg",
+   "l_h": "/project/brand/logo/l_h.svg",
+   "l_o": "/project/brand/logo/l_o.svg",
+   "l_r": "/project/brand/logo/l_r.svg",
+   "l_e": "/project/brand/logo/l_e.svg",
+   "l_o2": "/project/brand/logo/l_o2.svg",
+   "l_n": "/project/brand/logo/l_n.svg"
+  },
+  "full": "/project/brand/logo/logo-choreon.svg",
+  "plate": "#0c0c0c"
+ }
+}
