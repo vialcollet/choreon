@@ -1,0 +1,34 @@
+// Traductions françaises : titres des tâches (stockés en anglais, traduits à l'affichage par translateTitle).
+export default {
+	// Titres par type de tâche (titre exact).
+	'Storyboard — generation': 'Storyboard — génération',
+	'Storyboard — revision': 'Storyboard — révision',
+	'Shot — build': 'Plan — construction',
+	'Shot — retouch': 'Plan — retouche',
+	'Image — Codex': 'Image — Codex',
+	'Export to Resolve': 'Export vers Resolve',
+	'Memory — lessons': 'Mémoire — leçons',
+	'Reference — analysis': 'Référence — analyse',
+	'References — shortlist': 'Références — présélection',
+	'Framing — interview': 'Cadrage — entretien',
+	'Stills — render': 'Stills — rendu',
+	'Interface — harvest': 'Interface — récolte',
+	'Interface — sign-in': 'Interface — connexion',
+	// Segments (entre « — » et « · »), pour les titres composés.
+	Render: 'Rendu',
+	Assembly: 'Montage',
+	'Voice-over': 'Voix off',
+	Animatic: 'Brouillon',
+	Reference: 'Référence',
+	generation: 'génération',
+	revision: 'révision',
+	build: 'construction',
+	retouch: 'retouche',
+	shortlist: 'présélection',
+	render: 'rendu',
+	'Shot {key}': 'Plan {key}',
+	'fix ({n} note(s))': 'correction ({n} note(s))',
+	'revision ({n} note(s))': 'révision ({n} note(s))',
+	'auto fix (round {n})': 'correction auto (tour {n})',
+	'fix from evaluation': 'correction d’après l’évaluation'
+} as Record<string, string>;

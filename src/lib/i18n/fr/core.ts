@@ -1,0 +1,28 @@
+// Traductions françaises : navigation, garde d'accès, éléments communs.
+export default {
+	'You direct.': 'Vous réalisez.',
+	'Choreon animates.': 'Choreon anime.',
+	'An open-source motion design studio: brief, storyboard, shots in code, critique, edit and sound.': 'Un studio de motion design open source : brief, storyboard, plans en code, critique, montage et son.',
+	Close: 'Fermer',
+	Timeline: 'Timeline',
+	demo: 'démo',
+	'Choreon — motion design studio': 'Choreon — studio de motion design',
+	'New video': 'Nouvelle vidéo',
+	References: 'Références',
+	Library: 'Bibliothèque',
+	Interface: 'Interface',
+	Stills: 'Stills',
+	Settings: 'Réglages',
+	'New project': 'Nouveau projet',
+	Lessons: 'Leçons',
+	'Studio settings': 'Réglages du studio',
+	Administration: 'Administration',
+	'Active organization': 'Organisation active',
+	Organization: 'Organisation',
+	'Interface language': "Langue de l'interface",
+	'My account': 'Mon compte',
+	'Sign out': 'Se déconnecter',
+	'Not signed in': 'Non authentifié',
+	'Project not found': 'Projet introuvable',
+	'Studio administrators only': 'Réservé à l’administrateur du studio'
+} as Record<string, string>;

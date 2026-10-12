@@ -1,0 +1,554 @@
+{
+ "source": "mixkit",
+ "license": "Mixkit Sound Effects Free License (commercial use allowed, no attribution)",
+ "roles": {
+  "swish": [
+   {
+    "id": "1462",
+    "title": "Quick swoosh",
+    "file": "swoosh/1462-quick-swoosh.mp3"
+   },
+   {
+    "id": "1464",
+    "title": "Quick swoosh accent",
+    "file": "swoosh/1464-quick-swoosh-accent.mp3"
+   },
+   {
+    "id": "174",
+    "title": "Fast sweep transition",
+    "file": "swoosh/174-fast-sweep-transition.mp3"
+   },
+   {
+    "id": "164",
+    "title": "Fast sweeping transition",
+    "file": "swoosh/164-fast-sweeping-transition.mp3"
+   },
+   {
+    "id": "168",
+    "title": "Fast air sweep transition",
+    "file": "swoosh/168-fast-air-sweep-transition.mp3"
+   },
+   {
+    "id": "1461",
+    "title": "Short wind swoosh",
+    "file": "swoosh/1461-short-wind-swoosh.mp3"
+   },
+   {
+    "id": "166",
+    "title": "Fast small sweep transition",
+    "file": "transition/166-fast-small-sweep-transition.mp3"
+   },
+   {
+    "id": "175",
+    "title": "Short transition sweep",
+    "file": "transition/175-short-transition-sweep.mp3"
+   },
+   {
+    "id": "3120",
+    "title": "Technology transition slide",
+    "file": "transition/3120-technology-transition-slide.mp3"
+   }
+  ],
+  "whoosh": [
+   {
+    "id": "1489",
+    "title": "Air woosh",
+    "file": "whoosh/1489-air-woosh.mp3"
+   },
+   {
+    "id": "1471",
+    "title": "Cinematic wind swoosh",
+    "file": "swoosh/1471-cinematic-wind-swoosh.mp3"
+   },
+   {
+    "id": "1468",
+    "title": "Cinematic transition wind swoosh",
+    "file": "swoosh/1468-cinematic-transition-wind-swoosh.mp3"
+   },
+   {
+    "id": "1466",
+    "title": "Elevating swoosh",
+    "file": "swoosh/1466-elevating-swoosh.mp3"
+   },
+   {
+    "id": "1469",
+    "title": "Flying fast swoosh",
+    "file": "swoosh/1469-flying-fast-swoosh.mp3"
+   },
+   {
+    "id": "1481",
+    "title": "Cinematic swoosh",
+    "file": "swoosh/1481-cinematic-swoosh.mp3"
+   },
+   {
+    "id": "1167",
+    "title": "Swoosh wind passing",
+    "file": "swoosh/1167-swoosh-wind-passing.mp3"
+   },
+   {
+    "id": "169",
+    "title": "Futuristic sweep pass by",
+    "file": "swoosh/169-futuristic-sweep-pass-by.mp3"
+   },
+   {
+    "id": "3161",
+    "title": "Transition flying swoosh",
+    "file": "transition/3161-transition-flying-swoosh.mp3"
+   },
+   {
+    "id": "1465",
+    "title": "Vacuum swoosh transition",
+    "file": "transition/1465-vacuum-swoosh-transition.mp3"
+   },
+   {
+    "id": "1490",
+    "title": "Fast whoosh transition",
+    "file": "transition/1490-fast-whoosh-transition.mp3"
+   },
+   {
+    "id": "1492",
+    "title": "Cinematic whoosh fast transition",
+    "file": "transition/1492-cinematic-whoosh-fast-transition.mp3"
+   },
+   {
+    "id": "1168",
+    "title": "Woosh wind",
+    "file": "transition/1168-woosh-wind.mp3"
+   },
+   {
+    "id": "1474",
+    "title": "Transition windy swoosh",
+    "file": "transition/1474-transition-windy-swoosh.mp3"
+   },
+   {
+    "id": "2608",
+    "title": "Air zoom vacuum",
+    "file": "transition/2608-air-zoom-vacuum.mp3"
+   },
+   {
+    "id": "1493",
+    "title": "Swirling whoosh",
+    "file": "whoosh/1493-swirling-whoosh.mp3"
+   }
+  ],
+  "thump": [
+   {
+    "id": "1143",
+    "title": "Cinematic whoosh deep impact",
+    "file": "impact/1143-cinematic-whoosh-deep-impact.mp3"
+   },
+   {
+    "id": "2070",
+    "title": "Light impact on the ground",
+    "file": "impact/2070-light-impact-on-the-ground.mp3"
+   },
+   {
+    "id": "772",
+    "title": "Quick zoom impact",
+    "file": "impact/772-quick-zoom-impact.mp3"
+   },
+   {
+    "id": "2655",
+    "title": "Fast impact blow",
+    "file": "impact/2655-fast-impact-blow.mp3"
+   }
+  ],
+  "swell": [
+   {
+    "id": "2675",
+    "title": "Cinematic swell stark transition",
+    "file": "swell/2675-cinematic-swell-stark-transition.mp3"
+   },
+   {
+    "id": "2672",
+    "title": "Angelic swell presentation",
+    "file": "swell/2672-angelic-swell-presentation.mp3"
+   },
+   {
+    "id": "2666",
+    "title": "Bass double swell",
+    "file": "swell/2666-bass-double-swell.mp3"
+   },
+   {
+    "id": "2670",
+    "title": "Electronic swell noise",
+    "file": "swell/2670-electronic-swell-noise.mp3"
+   }
+  ],
+  "riser": [
+   {
+    "id": "2638",
+    "title": "Magic transition sweep presentation",
+    "file": "transition/2638-magic-transition-sweep-presentation.mp3"
+   },
+   {
+    "id": "1146",
+    "title": "Intro transition",
+    "file": "transition/1146-intro-transition.mp3"
+   },
+   {
+    "id": "3121",
+    "title": "Technology alert transition",
+    "file": "transition/3121-technology-alert-transition.mp3"
+   }
+  ],
+  "ui-click": [
+   {
+    "id": "2577",
+    "title": "Interface device click",
+    "file": "interface/2577-interface-device-click.mp3"
+   },
+   {
+    "id": "1109",
+    "title": "Select click",
+    "file": "interface/1109-select-click.mp3"
+   },
+   {
+    "id": "2568",
+    "title": "Cool interface click tone",
+    "file": "interface/2568-cool-interface-click-tone.mp3"
+   },
+   {
+    "id": "2364",
+    "title": "Hard pop click",
+    "file": "pop/2364-hard-pop-click.mp3"
+   },
+   {
+    "id": "2580",
+    "title": "Light button",
+    "file": "notification/2580-light-button.mp3"
+   }
+  ],
+  "ui-chime": [
+   {
+    "id": "1107",
+    "title": "Page forward single chime",
+    "file": "interface/1107-page-forward-single-chime.mp3"
+   },
+   {
+    "id": "1106",
+    "title": "Page turn chime",
+    "file": "interface/1106-page-turn-chime.mp3"
+   },
+   {
+    "id": "1108",
+    "title": "Page back chime",
+    "file": "interface/1108-page-back-chime.mp3"
+   },
+   {
+    "id": "2867",
+    "title": "Confirmation tone",
+    "file": "notification/2867-confirmation-tone.mp3"
+   },
+   {
+    "id": "951",
+    "title": "Positive notification",
+    "file": "notification/951-positive-notification.mp3"
+   },
+   {
+    "id": "2861",
+    "title": "Clear announce tones",
+    "file": "notification/2861-clear-announce-tones.mp3"
+   }
+  ],
+  "ui-pop": [
+   {
+    "id": "2358",
+    "title": "Long pop",
+    "file": "notification/2358-long-pop.mp3"
+   },
+   {
+    "id": "2354",
+    "title": "Message pop alert",
+    "file": "notification/2354-message-pop-alert.mp3"
+   },
+   {
+    "id": "2357",
+    "title": "Bubble pop up alert notification",
+    "file": "notification/2357-bubble-pop-up-alert-notification.mp3"
+   },
+   {
+    "id": "2356",
+    "title": "Dry pop up notification alert",
+    "file": "notification/2356-dry-pop-up-notification-alert.mp3"
+   },
+   {
+    "id": "3005",
+    "title": "Explainer video pops whoosh light pop",
+    "file": "pop/3005-explainer-video-pops-whoosh-light-pop.mp3"
+   }
+  ],
+  "ui-notify": [
+   {
+    "id": "911",
+    "title": "Interface hint notification",
+    "file": "notification/911-interface-hint-notification.mp3"
+   },
+   {
+    "id": "2573",
+    "title": "Interface option select",
+    "file": "notification/2573-interface-option-select.mp3"
+   },
+   {
+    "id": "2866",
+    "title": "Digital quick tone",
+    "file": "notification/2866-digital-quick-tone.mp3"
+   },
+   {
+    "id": "2574",
+    "title": "Software interface start",
+    "file": "notification/2574-software-interface-start.mp3"
+   },
+   {
+    "id": "2575",
+    "title": "Software interface back",
+    "file": "notification/2575-software-interface-back.mp3"
+   },
+   {
+    "id": "2578",
+    "title": "Opening software interface",
+    "file": "interface/2578-opening-software-interface.mp3"
+   }
+  ],
+  "bed": [
+   {
+    "id": "2751",
+    "title": "Drone logo presentation",
+    "file": "drone/2751-drone-logo-presentation.mp3"
+   },
+   {
+    "id": "2009",
+    "title": "Deep space atmosphere",
+    "file": "atmosphere/2009-deep-space-atmosphere.mp3"
+   },
+   {
+    "id": "2008",
+    "title": "Space atmosphere",
+    "file": "atmosphere/2008-space-atmosphere.mp3"
+   }
+  ],
+  "trailer-hit": [
+   {
+    "id": "1143",
+    "title": "Cinematic whoosh deep impact",
+    "file": "impact/1143-cinematic-whoosh-deep-impact.mp3"
+   },
+   {
+    "id": "2900",
+    "title": "Movie logo intro impact",
+    "file": "impact/2900-movie-logo-intro-impact.mp3"
+   },
+   {
+    "id": "788",
+    "title": "Big cinematic impact",
+    "file": "impact/788-big-cinematic-impact.mp3"
+   },
+   {
+    "id": "2915",
+    "title": "Blockbuster suspense movie impact",
+    "file": "impact/2915-blockbuster-suspense-movie-impact.mp3"
+   },
+   {
+    "id": "2901",
+    "title": "Epic movie impact",
+    "file": "impact/2901-epic-movie-impact.mp3"
+   },
+   {
+    "id": "2908",
+    "title": "Movie trailer epic impact",
+    "file": "impact/2908-movie-trailer-epic-impact.mp3"
+   },
+   {
+    "id": "780",
+    "title": "Cinematic impact echo",
+    "file": "impact/780-cinematic-impact-echo.mp3"
+   }
+  ],
+  "trailer-build": [
+   {
+    "id": "2295",
+    "title": "Pulsating bass transition",
+    "file": "transition/2295-pulsating-bass-transition.mp3"
+   },
+   {
+    "id": "2667",
+    "title": "Intense swell phasing spinning",
+    "file": "swell/2667-intense-swell-phasing-spinning.mp3"
+   },
+   {
+    "id": "2675",
+    "title": "Cinematic swell stark transition",
+    "file": "swell/2675-cinematic-swell-stark-transition.mp3"
+   },
+   {
+    "id": "569",
+    "title": "Atmospheric prelude drum roll",
+    "file": "atmosphere/569-atmospheric-prelude-drum-roll.mp3"
+   }
+  ],
+  "trailer-pulse": [
+   {
+    "id": "498",
+    "title": "Deep heartbeat impact",
+    "file": "impact/498-deep-heartbeat-impact.mp3"
+   }
+  ],
+  "trailer-stab": [
+   {
+    "id": "772",
+    "title": "Quick zoom impact",
+    "file": "impact/772-quick-zoom-impact.mp3"
+   },
+   {
+    "id": "2180",
+    "title": "Exciting fast hit",
+    "file": "impact/2180-exciting-fast-hit.mp3"
+   },
+   {
+    "id": "2655",
+    "title": "Fast impact blow",
+    "file": "impact/2655-fast-impact-blow.mp3"
+   }
+  ],
+  "trailer-suck": [
+   {
+    "id": "2608",
+    "title": "Air zoom vacuum",
+    "file": "transition/2608-air-zoom-vacuum.mp3"
+   },
+   {
+    "id": "1465",
+    "title": "Vacuum swoosh transition",
+    "file": "transition/1465-vacuum-swoosh-transition.mp3"
+   },
+   {
+    "id": "1490",
+    "title": "Fast whoosh transition",
+    "file": "transition/1490-fast-whoosh-transition.mp3"
+   }
+  ]
+ },
+ "kenney": {
+  "pack": "kenney-impact",
+  "license": "CC0",
+  "roles": {
+   "thump": [
+    "impactSoft_heavy",
+    "impactSoft_medium"
+   ],
+   "ui-tap": [
+    "impactGeneric_light"
+   ]
+  }
+ },
+ "music": [
+  {
+   "id": "175",
+   "title": "Digital Clouds",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "technology",
+   "duration": 101,
+   "file": "music/175-digital-clouds.mp3"
+  },
+  {
+   "id": "132",
+   "title": "Hazy After Hours",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "technology",
+   "duration": 127,
+   "file": "music/132-hazy-after-hours.mp3"
+  },
+  {
+   "id": "134",
+   "title": "Deep Techno Ambience",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "technology",
+   "duration": 123,
+   "file": "music/134-deep-techno-ambience.mp3"
+  },
+  {
+   "id": "127",
+   "title": "Valley Sunset",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "ambient",
+   "duration": 134,
+   "file": "music/127-valley-sunset.mp3"
+  },
+  {
+   "id": "588",
+   "title": "Feedback Dreams",
+   "artist": "Eugenio Mininni",
+   "genre": "ambient",
+   "duration": 149,
+   "file": "music/588-feedback-dreams.mp3"
+  },
+  {
+   "id": "471",
+   "title": "Rising Forest",
+   "artist": "Diego Nava",
+   "genre": "corporate",
+   "duration": 99,
+   "file": "music/471-rising-forest.mp3"
+  },
+  {
+   "id": "1167",
+   "title": "Close Up",
+   "artist": "Michael Ramir C.",
+   "genre": "technology",
+   "duration": 95,
+   "file": "music/1167-close-up.mp3"
+  },
+  {
+   "id": "441",
+   "title": "Meditation",
+   "artist": "Arulo",
+   "genre": "technology",
+   "duration": 118,
+   "file": "music/441-meditation.mp3"
+  },
+  {
+   "id": "749",
+   "title": "Relaxation 05",
+   "artist": "Lily J",
+   "genre": "ambient",
+   "duration": 118,
+   "file": "music/749-relaxation-05.mp3"
+  },
+  {
+   "id": "148",
+   "title": "Forest Mist Whispers",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "ambient",
+   "duration": 151,
+   "file": "music/148-forest-mist-whispers.mp3"
+  },
+  {
+   "id": "184",
+   "title": "Vastness",
+   "artist": "Andrew Ev",
+   "genre": "ambient",
+   "duration": 230,
+   "file": "music/184-vastness.mp3"
+  },
+  {
+   "id": "139",
+   "title": "Spirit in the Woods",
+   "artist": "Alejandro Magaña (A. M.)",
+   "genre": "ambient",
+   "duration": 113,
+   "file": "music/139-spirit-in-the-woods.mp3"
+  },
+  {
+   "id": "474",
+   "title": "What About Action?",
+   "artist": "Diego Nava",
+   "genre": "corporate",
+   "duration": 117,
+   "file": "music/474-what-about-action.mp3"
+  }
+ ],
+ "licenses": {
+  "sfx": "Mixkit Sound Effects Free License: commercial use allowed, no attribution",
+  "music": "Mixkit Stock Music Free License: web, social media, online ads, commercial; no TV/radio, CD/DVD or video games"
+ }
+}
