@@ -4,7 +4,7 @@
 // in the take, each word its timestamp. The studio places the take on the film and syncs the image to it.
 //
 //   node engine/voice.mjs --script script.json --out voice.wav [--voice Charon] [--style "director's notes"] [--tries 6]
-//   script.json: { "lines": [{ "key": "s01", "text": "Every video starts with an idea." }, …] }
+//   script.json: { "lines": [{ "key": "s01", "text": "Every video starts with an idea.", "say"?: "the line respelled for the reader" }, …] }
 //   env: GEMINI_API_KEY (speech), GROQ_API_KEY (word timings and check); GEMINI_TTS_MODEL optional.
 //
 // Gemini quirks handled here: it sometimes reads its director's notes aloud (the take is rejected:
@@ -96,9 +96,11 @@ async function main() {
 	const voice = o.voice || 'Charon';
 	const style = o.style && o.style !== 'true' ? o.style : '';
 	const tries = Number(o.tries || 6);
+	// What is read aloud: `say` when the line carries a respelling (the brand's pronunciation lexicon), else its text.
+	const said = lines.map((l) => (typeof l.say === 'string' && l.say.trim()) || l.text.trim());
 	// One paragraph per shot: the reader pauses between them, the way the film cuts.
-	const text = lines.map((l) => l.text.trim()).join('\n\n');
-	const script = lines.flatMap((l, li) => tokens(l.text).map((w) => ({ w, li })));
+	const text = said.join('\n\n');
+	const script = said.flatMap((t, li) => tokens(t).map((w) => ({ w, li })));
 	const noteWords = tokens(style).filter((w) => w.length > 5 && !script.some((s) => s.w === w));
 	const log = [];
 	for (let k = 1; k <= tries; k++) {

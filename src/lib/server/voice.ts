@@ -47,6 +47,25 @@ export function spoken(text: string | undefined): string {
 	return s.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * The brand's pronunciation lexicon (`brand/brand.json` → `pronunciation`: `{ "Omeon": "Oméone" }`): how the
+ * reader should say a word it would get wrong. Only string entries count.
+ */
+export function lexiconOf(brandJson: Record<string, unknown>): Record<string, string> {
+	const p = brandJson.pronunciation;
+	if (!p || typeof p !== 'object' || Array.isArray(p)) return {};
+	return Object.fromEntries(Object.entries(p as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string' && !!e[0].trim() && !!e[1].trim()));
+}
+
+/** The line as it should be read: each lexicon word (whole word, any case) replaced by its respelling, longest first. */
+export function respell(text: string, lexicon: Record<string, string>): string {
+	const keys = Object.keys(lexicon).sort((a, b) => b.length - a.length);
+	if (!keys.length) return text;
+	const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const by = new Map(keys.map((k) => [k.toLowerCase(), lexicon[k]]));
+	return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])(${keys.map(esc).join('|')})(?![\\p{L}\\p{N}])`, 'giu'), (m) => by.get(m.toLowerCase()) ?? m);
+}
+
 /** The script: one line per voiced shot, in order. */
 export const scriptOf = (shots: { key: string; data: { voiceover?: string } }[]) => shots.map((s) => ({ key: s.key, text: spoken(s.data.voiceover) })).filter((l) => l.text);
 

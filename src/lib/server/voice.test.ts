@@ -317,3 +317,19 @@ describe('voiceStyle', () => {
 		expect(V.voiceStyle(undefined)).toBe(V.VOICE_STYLE);
 	});
 });
+
+describe('pronunciation lexicon', () => {
+	test('lexiconOf keeps only word → respelling strings', () => {
+		expect(V.lexiconOf({ pronunciation: { Omeon: 'Oméone', bad: 3, '': 'x', empty: ' ' } })).toEqual({ Omeon: 'Oméone' });
+		expect(V.lexiconOf({})).toEqual({});
+		expect(V.lexiconOf({ pronunciation: ['Omeon'] })).toEqual({});
+	});
+
+	test('respell replaces whole words in any case, and nothing inside another word', () => {
+		const lex = { Omeon: 'Oméone', 'omeon.ai': 'Oméone point A I' };
+		expect(V.respell("Omeon la lit. Avec omeon, c'est fait.", lex)).toBe("Oméone la lit. Avec Oméone, c'est fait.");
+		expect(V.respell('Rendez-vous sur omeon.ai', lex)).toBe('Rendez-vous sur Oméone point A I');
+		expect(V.respell('Omeonix et préomeon restent.', lex)).toBe('Omeonix et préomeon restent.');
+		expect(V.respell('Rien à changer.', {})).toBe('Rien à changer.');
+	});
+});

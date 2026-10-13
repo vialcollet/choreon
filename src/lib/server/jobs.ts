@@ -21,7 +21,7 @@ import { authFile, hasAuth, kitDir, type UiComponent, type UiKit } from './uikit
 import { ownHouseRules } from './workspace';
 import { secret } from './secrets';
 import { selfHarvestEnv, studioPort } from './service-auth';
-import { fitToVoice, placeLines, readVoice, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
+import { fitToVoice, lexiconOf, placeLines, readVoice, respell, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
 
 // Studio jobs. Each job is a run (live log); runs of the same video
 // execute one after the other. The production loop of a shot:
@@ -808,7 +808,9 @@ const voiceGenerate: Handler = async (run, signal) => {
 	const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(project.settings.language);
 	const tag = `v${sb.version}-${voiceName.toLowerCase()}-${Date.now().toString(36)}`;
 	const scriptFile = join(dir, `${tag}.script.json`);
-	writeFileSync(scriptFile, JSON.stringify({ lines }, null, 1));
+	// The brand's lexicon respells the words the reader would mispronounce; the script and the subtitles keep the real spelling.
+	const lexicon = lexiconOf(S.readBrand(project.id).json);
+	writeFileSync(scriptFile, JSON.stringify({ lines: lines.map((l) => { const say = respell(l.text, lexicon); return say === l.text ? l : { ...l, say }; }) }, null, 1));
 	const wav = join(dir, `${tag}.wav`);
 	emit(run.id, 'log', { message: `recording ${lines.length} lines in one take (${voiceName})…` });
 	const r = await engine('voice.mjs', ['--script', scriptFile, '--out', wav, '--voice', voiceName, ...(style ? ['--style', style] : [])], run.id, signal, { GEMINI_API_KEY: gemini, GROQ_API_KEY: groq });
