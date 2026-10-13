@@ -3,7 +3,7 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative } from 'node:path';
-import type { BriefQuestion, EvalConfig, Finding, ModelChoice, Role, ShotData } from '$lib/types';
+import type { BriefQuestion, EvalConfig, Finding, ModelChoice, Role, ShotData, VoiceTrack } from '$lib/types';
 import { notesOf, projectNotesOf, refOf, renderOf, videoOf } from './access';
 import { extractJson, finalAnswer, runAgent } from './agent';
 import { exportToResolve } from './resolve';
@@ -21,7 +21,7 @@ import { authFile, hasAuth, kitDir, type UiComponent, type UiKit } from './uikit
 import { ownHouseRules } from './workspace';
 import { secret } from './secrets';
 import { selfHarvestEnv, studioPort } from './service-auth';
-import { fitToVoice, readVoice, scriptOf, VOICE_STYLE, voiceDir, voiceJson, voiceMatches, voiceStart } from './voice';
+import { fitToVoice, placeLines, readVoice, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
 
 // Studio jobs. Each job is a run (live log); runs of the same video
 // execute one after the other. The production loop of a shot:
@@ -792,7 +792,7 @@ End with a summary: which gestures get a sound, which stay silent and why.`;
  * shot gets its words, which the animator syncs to. Followed by the animatic, to validate it all.
  */
 const voiceGenerate: Handler = async (run, signal) => {
-	const { video, vdir } = ctxOf(run);
+	const { project, video, vdir } = ctxOf(run);
 	if (!video || !vdir) throw new Error('video required');
 	const sb = S.getStoryboard(video.id);
 	if (!sb) throw new Error('no storyboard');
@@ -805,7 +805,7 @@ const voiceGenerate: Handler = async (run, signal) => {
 	const dir = ensureDir(voiceDir(vdir));
 	const prev = readVoice(vdir);
 	const voiceName = String(run.input.voice || prev?.voice || 'Charon').replace(/[^A-Za-z]/g, '') || 'Charon';
-	const style = typeof run.input.style === 'string' ? run.input.style.trim() : VOICE_STYLE;
+	const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(project.settings.language);
 	const tag = `v${sb.version}-${voiceName.toLowerCase()}-${Date.now().toString(36)}`;
 	const scriptFile = join(dir, `${tag}.script.json`);
 	writeFileSync(scriptFile, JSON.stringify({ lines }, null, 1));
@@ -813,9 +813,18 @@ const voiceGenerate: Handler = async (run, signal) => {
 	emit(run.id, 'log', { message: `recording ${lines.length} lines in one take (${voiceName})…` });
 	const r = await engine('voice.mjs', ['--script', scriptFile, '--out', wav, '--voice', voiceName, ...(style ? ['--style', style] : [])], run.id, signal, { GEMINI_API_KEY: gemini, GROQ_API_KEY: groq });
 	for (const l of r.log ?? []) emit(run.id, 'log', { message: l });
-	const track = { storyboardVersion: sb.version, voice: voiceName, file: wav, start: voiceStart(shots, lines, video.format.fps), duration: r.duration, words: r.words, lines: r.lines, createdAt: Date.now() };
-	writeFileSync(voiceJson(vdir), JSON.stringify(track, null, 1));
+	let track: VoiceTrack = { storyboardVersion: sb.version, voice: voiceName, file: wav, start: voiceStart(shots, lines, video.format.fps), duration: r.duration, words: r.words, lines: r.lines, createdAt: Date.now() };
 	writeFileSync(join(dir, `${tag}.json`), JSON.stringify(track, null, 1));
+	// Shots already animated keep their lengths: each line of the take moves into its own shot instead.
+	if (shotsBuilt(video, shots) || run.input.retime === false) {
+		const p = placeLines(shots.map((s) => s.duration), shots.map((s) => s.key), track);
+		const planFile = join(dir, `${tag}.placed.json`), placedWav = join(dir, `${tag}.placed.wav`);
+		writeFileSync(planFile, JSON.stringify({ voice: wav, duration: shots.reduce((a, s) => a + s.duration, 0), splices: p.splices }, null, 1));
+		await engine('voice-place.mjs', ['--plan', planFile, '--out', placedWav], run.id, signal);
+		track = { ...track, ...p.track, file: placedWav, placed: true };
+		emit(run.id, 'log', { message: `lines placed in their shots${p.late.length ? `; too long for their shot: ${p.late.join(', ')} (shorten the line or lengthen the shot)` : ''}` });
+	}
+	writeFileSync(voiceJson(vdir), JSON.stringify(track, null, 1));
 	// Cut the shots to the take, unless this take already has animated shots (their length is baked in).
 	const { durations, cut } = fitToVoice(video, shots, track, vdir, { retime: run.input.retime !== false });
 	const total = durations.reduce((a, d) => a + d, 0);

@@ -273,3 +273,47 @@ describe('wordsPerShot', () => {
 		expect(V.wordsPerShot([], { start: 0, words: [] })).toEqual([]);
 	});
 });
+
+describe('placeLines (shots already animated)', () => {
+	// A take read fast: line 2 starts at 2.0 s in the take, but its shot only starts at 4.5 s in the film.
+	const take = {
+		duration: 6,
+		lines: [{ key: 's01', text: 'one two', start: 0.3, end: 1.6 }, { key: 's02', text: 'three four', start: 2.0, end: 3.4 }, { key: 's03', text: 'five', start: 4.0, end: 4.6 }],
+		words: [{ w: 'one', t: 0.3, end: 0.8 }, { w: 'two', t: 1.0, end: 1.6 }, { w: 'three', t: 2.0, end: 2.6 }, { w: 'four', t: 2.8, end: 3.4 }, { w: 'five', t: 4.0, end: 4.6 }]
+	};
+	const keys = ['s01', 's02', 's03'];
+
+	test('each line starts in its own shot: VOICE_START in the opening shot, lead after the others', () => {
+		const p = V.placeLines([4.5, 3.5, 5], keys, take);
+		expect(p.track.lines.map((l) => l.start)).toEqual([V.VOICE_START, 4.75, 8.25]);
+		expect(p.track.start).toBe(0);
+		expect(p.late).toEqual([]);
+	});
+
+	test('the words move with their line, in film time', () => {
+		const p = V.placeLines([4.5, 3.5, 5], keys, take);
+		expect(p.track.words.map((w) => w.t)).toEqual([0.3, 1, 4.75, 5.55, 8.25]);
+		expect(p.track.words[1].end).toBe(1.6);
+	});
+
+	test('a line never overlaps the previous one, and one too long for its shot is reported', () => {
+		const p = V.placeLines([1, 0.5, 5], keys, take);
+		for (let i = 1; i < p.splices.length; i++) expect(p.splices[i].at).toBeGreaterThanOrEqual(p.splices[i - 1].at + p.splices[i - 1].to - p.splices[i - 1].from);
+		expect(p.late).toContain('s01');
+		expect(p.late).toContain('s02');
+	});
+
+	test('segments do not reach into the neighbouring lines', () => {
+		const p = V.placeLines([4.5, 3.5, 5], keys, take);
+		for (let i = 1; i < p.splices.length; i++) expect(p.splices[i].from).toBeGreaterThanOrEqual(p.splices[i - 1].to - 1e-9);
+	});
+});
+
+describe('voiceStyle', () => {
+	test("notes stay in English and name the script's language (notes in the script's language get read aloud)", () => {
+		expect(V.voiceStyle('fr')).toContain('The transcript is in French');
+		expect(V.voiceStyle('fr')).toContain('premium product film');
+		expect(V.voiceStyle('en')).toBe(V.VOICE_STYLE);
+		expect(V.voiceStyle(undefined)).toBe(V.VOICE_STYLE);
+	});
+});

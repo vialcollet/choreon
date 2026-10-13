@@ -44,7 +44,7 @@ Choreon is a production pipeline for **motion design videos** (product launches,
 - **Storyboard** — shots with intent, visuals, on-screen text and a **timed list of states**, plus a reference frame for each. Annotate any shot, revise, compare versions.
 - **Shots in code** — each shot is a `scene.html` animated with a small deterministic runtime (critical springs, tweens, tracks, layered logo, brand fonts), rendered frame by frame by headless Chromium and ffmpeg, with real motion blur.
 - **Critique loop** — a critic agent scores every render against the project's grid (contact sheet, film strip, phone preview), and the animator fixes what falls below the bar, for a capped number of rounds. Then you decide.
-- **Voice-over and animatic** — the script is recorded in one take (Gemini TTS), every word timed (Whisper), the shots cut to the words. An animatic (storyboard frames over the voice) validates story, voice and timing in seconds, before a single shot is animated.
+- **Voice-over and animatic** — the script is recorded in one take (Gemini TTS), every word timed (Whisper), the shots cut to the words. Adding a voice to a film whose shots are already animated works too: each line is cut from the take and placed in its own shot, and a line too long for its shot is flagged. The reading notes follow the project's language. An animatic (storyboard frames over the voice) validates story, voice and timing in seconds, before a single shot is animated.
 - **Frame-accurate notes** — pause anywhere, draw a box, say what's wrong (dictation built in). Notes are routed automatically (shot fix, storyboard, global style) and applied surgically with the exact annotated frame. An applied note becomes the shot's new plan, so the critic judges against it instead of pulling the shot back.
 - **Sound design** — real recordings, not synth bleeps: a "one sound per gesture" doctrine, three dosages (subtle, balanced, with music). The mix keeps a fixed order, voice > music > effects, with ducking under the voice.
 - **UI kits from any website** — give it a URL (even behind a login), it rebuilds the interface elements (nav, inputs, buttons, cards…) as **layered SVG** in two variants, faithful and simplified, ready to animate.
@@ -110,7 +110,7 @@ Choreon is a local studio, not a hosted service. Read [SECURITY.md](SECURITY.md)
 1. **Project** — a brand (`brand/`: `motion.md`, `DESIGN.md`, `brand.json`, layered SVG logo, fonts), a library, UI kits, videos.
 2. **Framing** — the director turns the brief into decisions; you answer, pick an option or let it decide.
 3. **Storyboard** — generated from the brief and decisions; annotate, revise, approve.
-4. **Voice and animatic** — record the voice-over in one take; the shots are cut to its words; watch the animatic (frames over the voice) and fix story or timing while it costs nothing.
+4. **Voice and animatic** — record the voice-over in one take; the shots are cut to its words (or, once the shots are animated, each line moves into its shot); watch the animatic (frames over the voice) and fix story or timing while it costs nothing.
 5. **Build** — the animator writes each shot and checks its own stills; the studio renders the MP4. Shots are built in parallel (4 by default).
 6. **Critique** — scores per axis with thresholds; auto-fix below the bar, capped rounds.
 7. **Production** — the edit plays as one film (click a shot to play from it, double-click to open it, heard with the edit's sound), frame-by-frame player, notes on the exact frame and region, surgical fixes.
@@ -127,6 +127,7 @@ The content language (storyboards, critiques, on-screen text) is a project setti
 | | `engine/qa.mjs` | Contact sheet, film strip, phone preview, exact frame with highlighted region |
 | | `engine/sfx.mjs` | Sound design: cue sheet → effects stem; final mix voice > music > effects (ducking, -14 LUFS) |
 | | `engine/voice.mjs` | Voice-over: one-take TTS, Whisper check and word timings, alignment to the storyboard lines |
+| | `engine/voice-place.mjs` | Voice-over on animated shots: each line of the take moved into its shot |
 | | `engine/animatic.mjs` | Animatic: storyboard frames held for each shot's length, over the voice |
 | | `engine/ui-harvest.mjs` | Website → UI elements → layered SVG kit |
 | | `engine/analyze.mjs` | Reference analysis: cuts, palette, motion energy, easing |

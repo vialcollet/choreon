@@ -13,6 +13,17 @@ export const VOICE_START = 0.3;
 export const VOICES = ['Charon', 'Sulafat', 'Achird', 'Aoede', 'Kore', 'Puck', 'Iapetus', 'Algieba'];
 /** Director's notes for the reader: calm, premium, never salesy. */
 export const VOICE_STYLE = 'Warm, calm and confident narrator of a premium product film. Mid-tempo, natural pauses between paragraphs, a hint of a smile, never salesy.';
+/**
+ * The notes for a script in the project's language. They stay in English and name the language: notes written in
+ * the script's own language get read aloud with it (every take rejected), and without the hint the reading drifts
+ * toward an English accent.
+ */
+export function voiceStyle(lang: string | undefined): string {
+	if (!lang || lang === 'en') return VOICE_STYLE;
+	let name = lang;
+	try { name = new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) ?? lang; } catch {}
+	return VOICE_STYLE.replace('premium product film.', `premium product film. The transcript is in ${name}: read it as a native ${name} speaker, with natural ${name} intonation.`);
+}
 
 export const voiceDir = (vdir: string) => join(vdir, 'audio', 'voice');
 export const voiceJson = (vdir: string) => join(voiceDir(vdir), 'voice.json');
@@ -159,6 +170,46 @@ export function wordsPerShot(durations: number[], track: Pick<VoiceTrack, 'words
 	});
 }
 
+/** True when a shot of the current take is already rendered: the shots' lengths are baked into their animation. */
+export function shotsBuilt(video: { id: string }, shots: S.Shot[]): boolean {
+	const since = S.takeStart(video.id);
+	return shots.some((s) => S.listRenders(video.id, s.key).some((x) => x.createdAt >= since));
+}
+
+export type Splice = { from: number; to: number; at: number };
+
+/**
+ * When the shots are already animated (their lengths are baked in), the take is cut line by line and each line
+ * placed in its own shot instead of the shots following the take: a line starts `lead` after its shot's cut
+ * (`VOICE_START` for the opening shot), never sooner than `gap` after the previous line ends. A segment keeps a
+ * little air around its words without reaching into the next line. `late` lists the lines that end after their shot.
+ * Returns the cuts (take time `from`→`to`, film time `at`) and the track as heard in the film, starting at 0.
+ */
+export function placeLines(durations: number[], keys: string[], track: Pick<VoiceTrack, 'lines' | 'words' | 'duration'>, opts: { lead?: number; gap?: number } = {}): { splices: Splice[]; track: Pick<VoiceTrack, 'lines' | 'words' | 'duration' | 'start'>; late: string[] } {
+	const lead = opts.lead ?? 0.25, gap = opts.gap ?? 0.15;
+	const at0 = new Map<string, { start: number; end: number }>();
+	let t = 0;
+	keys.forEach((k, i) => { at0.set(k, { start: t, end: t + durations[i] }); t += durations[i]; });
+	const L = track.lines;
+	const splices: Splice[] = [];
+	const late: string[] = [];
+	let free = 0;
+	L.forEach((l, i) => {
+		const from = Math.max(0, l.start - 0.08, i ? (L[i - 1].end + l.start) / 2 : 0);
+		const to = Math.min(track.duration, l.end + 0.25, i + 1 < L.length ? (l.end + L[i + 1].start) / 2 : Infinity);
+		const shot = at0.get(l.key) ?? { start: free, end: Infinity };
+		const at = Math.max(shot.start + (shot.start === 0 ? VOICE_START : lead) - (l.start - from), free);
+		splices.push({ from: +from.toFixed(3), to: +to.toFixed(3), at: +at.toFixed(3) });
+		if (at + (l.end - from) > shot.end + 1e-6) late.push(l.key);
+		free = at + (to - from) + gap;
+	});
+	const move = (x: number) => { const s = splices.find((p) => x >= p.from - 1e-6 && x < p.to + 1e-6); return s ? +(s.at + x - s.from).toFixed(3) : null; };
+	const words = track.words.flatMap((w) => { const t = move(w.t); return t === null ? [] : [{ w: w.w, t, end: +(t + w.end - w.t).toFixed(3) }]; });
+	const lines = L.map((l, i) => ({ ...l, start: +(splices[i].at + l.start - splices[i].from).toFixed(3), end: +(splices[i].at + l.end - splices[i].from).toFixed(3) }));
+	const last = splices[splices.length - 1];
+	return { splices, track: { lines, words, start: 0, duration: last ? +(last.at + last.to - last.from).toFixed(3) : 0 }, late };
+}
+
 /**
  * Fits the storyboard's shots to a recorded take, the same way after `voice_generate` and after a storyboard import
  * that kept the script: the take always moves to `voiceStart` of the current shots, and unless a shot of this take is
@@ -167,10 +218,9 @@ export function wordsPerShot(durations: number[], track: Pick<VoiceTrack, 'words
  * the WAV stays as recorded.
  */
 export function fitToVoice(video: { id: string; format: { fps: number } }, shots: S.Shot[], track: VoiceTrack, vdir: string, opts: { retime?: boolean } = {}): { track: VoiceTrack; durations: number[]; cut: boolean } {
-	const since = S.takeStart(video.id);
-	const built = shots.some((s) => S.listRenders(video.id, s.key).some((x) => x.createdAt >= since));
-	const cut = opts.retime !== false && !built;
-	const fitted = { ...track, start: voiceStart(shots, track.lines, video.format.fps) }; // the opening shots may have changed since the take was placed
+	const cut = opts.retime !== false && !shotsBuilt(video, shots);
+	// The opening shots may have changed since the take was placed; a take placed line by line is already in film time.
+	const fitted = track.placed ? track : { ...track, start: voiceStart(shots, track.lines, video.format.fps) };
 	const durations = cut ? retime(shots, fitted, video.format.fps) : shots.map((s) => s.duration);
 	const words = wordsPerShot(durations, fitted);
 	// All or nothing: voice.json is replaced atomically, then every shot in one transaction; a failure puts voice.json back.

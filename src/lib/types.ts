@@ -43,6 +43,8 @@ export interface VoiceTrack {
 	words: { w: string; t: number; end: number }[];
 	lines: { key: string; text: string; start: number; end: number }[];
 	createdAt: number;
+	/** The take was cut line by line and each line placed in its shot (shots already animated): `file` starts at film time 0. */
+	placed?: boolean;
 }
 
 export interface EvalAxis {
