@@ -218,15 +218,19 @@ export async function runAgent(task: AgentTask): Promise<AgentResult> {
 	return { text, texts, costUsd: cost, turns, sessionId, maxTurnsHit };
 }
 
+/** Asked when the agent answered but its JSON does not parse. */
+export const REPAIR_JSON = 'Your last answer could not be read as JSON (a syntax error, such as a stray character between two fields). Send the same answer again, as valid JSON only, nothing else.';
+
 /**
- * If the agent ran out of turns without delivering the expected JSON, resumes its session (it keeps
- * everything it has seen) and asks it to conclude immediately, without tools.
+ * When the expected JSON is missing, resumes the agent's session (it keeps everything it has seen) once, without
+ * tools: if it ran out of turns, `ask` makes it conclude now; if it did answer but the JSON does not parse (a typo
+ * between two fields loses the whole verdict), it is asked to send the same answer again as valid JSON.
  */
-export async function finalAnswer<T>(task: AgentTask, res: AgentResult, ok: (x: T | null) => boolean, ask: string): Promise<AgentResult> {
+export async function finalAnswer<T>(task: AgentTask, res: AgentResult, ok: (x: T | null) => boolean, ask: string, run: (t: AgentTask) => Promise<AgentResult> = runAgent): Promise<AgentResult> {
 	const found = [res.text, ...[...res.texts].reverse()].some((t) => ok(extractJson<T>(t)));
-	if (found || !res.maxTurnsHit || !res.sessionId) return res;
-	emit(task.runId, 'log', { message: 'resuming the session to get the conclusion' });
-	const last = await runAgent({ ...task, images: [], resume: res.sessionId, prompt: ask, noTools: true, maxTurns: 2 });
+	if (found || !res.sessionId) return res;
+	emit(task.runId, 'log', { message: res.maxTurnsHit ? 'resuming the session to get the conclusion' : 'the answer is not valid JSON: asking for it again' });
+	const last = await run({ ...task, images: [], resume: res.sessionId, prompt: res.maxTurnsHit ? ask : REPAIR_JSON, noTools: true, maxTurns: 2 });
 	return { ...last, texts: [...res.texts, ...last.texts], costUsd: res.costUsd + last.costUsd, turns: res.turns + last.turns };
 }
 

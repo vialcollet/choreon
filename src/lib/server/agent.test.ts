@@ -1,6 +1,6 @@
 import { delimiter } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { agentEnv, extractJson } from './agent';
+import { agentEnv, extractJson, finalAnswer, REPAIR_JSON, type AgentResult, type AgentTask } from './agent';
 import { saveStudioSettings, studioSettings } from './lessons';
 
 // Names only: each secret gets the value `fake-<name>`.
@@ -116,5 +116,46 @@ describe('extractJson', () => {
 		expect(extractJson('no json here')).toBeNull();
 		expect(extractJson('{"a": ')).toBeNull();
 		expect(extractJson('```json\n{broken}\n```')).toBeNull();
+	});
+});
+
+describe('finalAnswer', () => {
+	const task = { runId: 'test-final-answer', cwd: '.', prompt: 'p', role: 'r', images: [], signal: new AbortController().signal } as unknown as AgentTask;
+	const result = (text: string, more: Partial<AgentResult> = {}): AgentResult => ({ text, texts: [text], costUsd: 0.1, turns: 3, sessionId: 's1', maxTurnsHit: false, ...more });
+	const ok = (x: { scores?: unknown } | null) => !!x?.scores;
+	/** A stand-in for the agent: records what it was asked and answers `reply`. */
+	const fake = (reply: string) => {
+		const asked: AgentTask[] = [];
+		return { asked, run: async (t: AgentTask) => (asked.push(t), result(reply, { costUsd: 0.01, turns: 1 })) };
+	};
+
+	test('a valid answer is kept as is: the agent is not asked again', async () => {
+		const f = fake('{}');
+		const res = await finalAnswer(task, result('```json\n{"scores": {"a": 8}}\n```'), ok, 'conclude', f.run);
+		expect(f.asked).toHaveLength(0);
+		expect(extractJson<{ scores: unknown }>(res.text)?.scores).toEqual({ a: 8 });
+	});
+
+	test('an answer whose JSON does not parse is asked for again, once, without tools, in the same session', async () => {
+		const f = fake('{"scores": {"a": 7}}');
+		const res = await finalAnswer(task, result('```json\n{"scores": {"a": 7}, "summary": "x");\n"findings": []}\n```'), ok, 'conclude', f.run);
+		expect(f.asked).toHaveLength(1);
+		expect(f.asked[0]).toMatchObject({ prompt: REPAIR_JSON, resume: 's1', noTools: true });
+		expect(extractJson<{ scores: unknown }>(res.text)?.scores).toEqual({ a: 7 });
+		expect(res.costUsd).toBeCloseTo(0.11);
+		expect(res.turns).toBe(4);
+	});
+
+	test('out of turns, the agent is asked to conclude with the caller\'s request', async () => {
+		const f = fake('{"scores": {"a": 6}}');
+		await finalAnswer(task, result('still checking…', { maxTurnsHit: true }), ok, 'conclude', f.run);
+		expect(f.asked[0].prompt).toBe('conclude');
+	});
+
+	test('without a session to resume, the answer is returned unchanged', async () => {
+		const f = fake('{}');
+		const res = await finalAnswer(task, result('no json', { sessionId: undefined }), ok, 'conclude', f.run);
+		expect(f.asked).toHaveLength(0);
+		expect(res.text).toBe('no json');
 	});
 });
