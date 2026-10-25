@@ -54,4 +54,28 @@ describe('voice-align', () => {
 		const { placed } = place(A, lines, heard('Choreon', 'makes', 'it', 'easy.'));
 		expect(placed).toBeNull();
 	});
+	test('a time written "8 h" matches the transcript whether it hears "8 heures", "8h" or "8 hours"', async () => {
+		const A = await load();
+		const ls = [{ key: 's01', text: '8 h. Omeon starts.' }, { key: 's02', text: '14 h, a meeting.' }];
+		const script = A.joinTimes(scriptOf(A, ls));
+		expect(script.map((s: any) => s.w)).toEqual(['8h', 'omeon', 'starts', '14h', 'a', 'meeting']);
+		expect(script[3].li).toBe(1);
+		for (const said of [['8', 'heures'], ['8h'], ['8', 'hours']]) {
+			const got = A.joinTimes(heard(...said, 'Omeon', 'starts.', '14h,', 'a', 'meeting.').map((x) => ({ ...x, n: A.norm(x.w) })), 'n', (a: any, b: any) => ({ ...a, w: `${a.w} ${b.w}`, end: b.end }));
+			const map = A.align(script.map((s: any) => s.w), got.map((x: any) => x.n));
+			expect(map.every((x: number) => x >= 0)).toBe(true);
+			const placed = A.placeLines(ls, script, got, map);
+			expect(placed[0].start).toBe(0);
+			expect(placed[0].end).toBe(got[2].end);
+		}
+		// "8 heures" becomes one word spanning both.
+		const two = A.joinTimes(heard('8', 'heures').map((x) => ({ ...x, n: A.norm(x.w) })), 'n', (a: any, b: any) => ({ ...a, w: `${a.w} ${b.w}`, end: b.end }));
+		expect(two).toEqual([{ w: '8 heures', n: '8h', t: 0, end: 0.9 }]);
+	});
+
+	test('a number without an hour unit, or a lone "h", is left alone', async () => {
+		const A = await load();
+		expect(A.joinTimes([{ w: '12' }, { w: 'm2' }, { w: 'h' }]).map((x: any) => x.w)).toEqual(['12', 'm2', 'h']);
+		expect(A.joinTimes([{ w: '8h30' }, { w: '120' }, { w: 'h' }]).map((x: any) => x.w)).toEqual(['8h30', '120', 'h']);
+	});
 });

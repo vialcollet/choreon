@@ -13,7 +13,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { align, norm, placeLines, tokens } from './voice-align.mjs';
+import { align, joinTimes, norm, placeLines, tokens } from './voice-align.mjs';
 
 function args(argv) {
 	const out = {};
@@ -100,7 +100,7 @@ async function main() {
 	const said = lines.map((l) => (typeof l.say === 'string' && l.say.trim()) || l.text.trim());
 	// One paragraph per shot: the reader pauses between them, the way the film cuts.
 	const text = said.join('\n\n');
-	const script = said.flatMap((t, li) => tokens(t).map((w) => ({ w, li })));
+	const script = joinTimes(said.flatMap((t, li) => tokens(t).map((w) => ({ w, li }))));
 	const noteWords = tokens(style).filter((w) => w.length > 5 && !script.some((s) => s.w === w));
 	const log = [];
 	for (let k = 1; k <= tries; k++) {
@@ -108,22 +108,29 @@ async function main() {
 		if (r.limited) { log.push(`try ${k}: rate limited ${r.msg}`); await sleep(30000); continue; }
 		const wav = wavOf(clean(r.pcm, r.rate), r.rate);
 		const heard = await transcribe(wav);
-		const got = heard.words.map((x) => norm(x.w)).filter(Boolean);
+		// Heard words, normalized (n) with the hours joined the way the script's are; w keeps what was heard.
+		const words = joinTimes(heard.words.map((x) => ({ ...x, n: norm(x.w) })).filter((x) => x.n), 'n', (a, b) => ({ ...a, w: `${a.w} ${b.w}`, end: b.end }));
+		const got = words.map((x) => x.n);
 		if (!got.length) { log.push(`try ${k}: rejected (empty transcript)`); continue; }
 		const map = align(script.map((s) => s.w), got);
 		const missing = map.filter((x) => x < 0).length;
 		const extra = got.length - map.filter((x) => x >= 0).length;
 		const leaked = noteWords.some((w) => got.includes(w));
 		const tol = Math.max(1, Math.round(script.length * 0.04));
-		if (leaked || missing > tol || extra > tol + 2) { log.push(`try ${k}: rejected (${missing} missing, ${extra} extra${leaked ? ', notes read aloud' : ''})`); continue; }
-		const words = heard.words.filter((x) => norm(x.w));
+		if (leaked || missing > tol || extra > tol + 2) {
+			// Name the words, not just their count: a systematic mismatch ("h" read "heures") shows at once.
+			const lost = script.filter((_, i) => map[i] < 0).map((s) => s.w).slice(0, 6);
+			const added = got.filter((_, j) => !map.includes(j)).slice(0, 6);
+			log.push(`try ${k}: rejected (${missing} missing, ${extra} extra${leaked ? ', notes read aloud' : ''}${lost.length ? `; missing: ${lost.join(' ')}` : ''}${added.length ? `; extra: ${added.join(' ')}` : ''})`);
+			continue;
+		}
 		const out = placeLines(lines, script, words, map);
 		if (!out) { log.push(`try ${k}: rejected (a line was not heard)`); continue; }
 		writeFileSync(resolve(o.out), wav);
 		const duration = +((wav.length - 44) / 2 / r.rate).toFixed(3);
 		// Whisper's end times can overshoot the (cleaned) take.
 		for (const x of [...words, ...out]) { x.end = Math.min(x.end, duration); x.start != null && (x.start = Math.min(x.start, duration)); }
-		console.log(JSON.stringify({ out: resolve(o.out), voice, duration, words, lines: out, transcript: heard.text.trim(), tries: k, log }));
+		console.log(JSON.stringify({ out: resolve(o.out), voice, duration, words: words.map(({ n, ...x }) => x), lines: out, transcript: heard.text.trim(), tries: k, log }));
 		return;
 	}
 	throw new Error(`no clean take in ${tries} tries: ${log.join('; ')}`);

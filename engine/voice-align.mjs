@@ -4,6 +4,25 @@
 export const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9' ]+/g, ' ').trim();
 export const tokens = (s) => norm(s).split(/\s+/).filter(Boolean);
 
+// A time is written "8 h" in a script but transcribed "8 heures", "8h" or "8 hours": all read as the token "8h".
+const HOUR = /^(h|heures?|hours?|hrs?)$/;
+/**
+ * Joins a number and the hour unit that follows it into one token ("8" "heures" → "8h"), on normalized words
+ * (`list` of objects, `key` names their normalized field). The joined word keeps the first's fields; `merge`
+ * combines the two when more must carry over (a heard word's end time).
+ */
+export function joinTimes(list, key = 'w', merge = (a) => ({ ...a })) {
+	const out = [];
+	for (let i = 0; i < list.length; i++) {
+		const a = list[i], b = list[i + 1];
+		const one = /^(\d{1,2})h(\d{2})?$/.exec(a[key]) || /^(\d{1,2})(?:heures?|hours?)$/.exec(a[key]);
+		if (one) out.push({ ...a, [key]: `${one[1]}h${one[2] ?? ''}` });
+		else if (/^\d{1,2}$/.test(a[key]) && b && HOUR.test(b[key])) { out.push({ ...merge(a, b), [key]: `${a[key]}h` }); i++; }
+		else out.push(a);
+	}
+	return out;
+}
+
 function lev(a, b) {
 	const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
 	for (let j = 1; j <= b.length; j++) d[0][j] = j;
