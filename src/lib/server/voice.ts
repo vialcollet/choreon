@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { VoiceTrack } from '$lib/types';
 import * as S from './store';
@@ -33,6 +33,37 @@ export function readVoice(vdir: string | null): VoiceTrack | null {
 	try {
 		const v = JSON.parse(readFileSync(voiceJson(vdir), 'utf8')) as VoiceTrack;
 		return v.file && existsSync(v.file) ? v : null;
+	} catch {
+		return null;
+	}
+}
+
+/** A recorded take, as `voice_generate` keeps it next to the current track: `tag` names its files (`<tag>.wav`, `<tag>.json`). */
+export interface VoiceTake { tag: string; voice: string; file: string; duration: number; createdAt: number }
+
+/**
+ * Every take recorded for these lines, newest first: each recording is kept, so a better earlier take can be
+ * chosen again (`voice_generate` with `take`) instead of rolling the dice once more.
+ */
+export function listTakes(vdir: string | null, shots: { key: string; data: { voiceover?: string } }[]): VoiceTake[] {
+	const dir = vdir ? voiceDir(vdir) : null;
+	if (!dir || !existsSync(dir)) return [];
+	const out: VoiceTake[] = [];
+	for (const f of readdirSync(dir)) {
+		const tag = f.replace(/\.json$/, '');
+		if (tag === f || f === 'voice.json' || /\.(script|placed)$/.test(tag)) continue;
+		const t = readTake(vdir!, tag);
+		if (t && voiceMatches(t, shots)) out.push({ tag, voice: t.voice, file: t.file, duration: t.duration, createdAt: t.createdAt });
+	}
+	return out.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** The raw take `tag` (before any placement in the shots), or null when its files are gone or the tag is not a plain name. */
+export function readTake(vdir: string, tag: string): VoiceTrack | null {
+	if (!/^[\w-]+$/.test(tag)) return null;
+	try {
+		const t = JSON.parse(readFileSync(join(voiceDir(vdir), `${tag}.json`), 'utf8')) as VoiceTrack;
+		return t.file && Array.isArray(t.lines) && existsSync(t.file) ? t : null;
 	} catch {
 		return null;
 	}

@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileUrl, videoDir } from '$lib/server/paths';
-import { readVoice, voiceMatches, VOICES } from '$lib/server/voice';
+import { listTakes, readVoice, voiceMatches, VOICES } from '$lib/server/voice';
 import * as S from '$lib/server/store';
 import type { LayoutServerLoad } from './$types';
 
@@ -32,6 +32,8 @@ export const load: LayoutServerLoad = ({ params, url, locals }) => {
 		notes: S.listNotes(video.id),
 		// The recorded voice-over (current = it reads this storyboard's lines) and the animatic of this storyboard.
 		voice: track ? { voice: track.voice, url: stamp(track.file), start: track.start, duration: track.duration, lines: track.lines, current: voiceMatches(track, shots), createdAt: track.createdAt } : null,
+		// Every take of the current lines, so an earlier one can be chosen again (current = the one the film uses).
+		takes: listTakes(vdir, shots).map((k) => ({ tag: k.tag, voice: k.voice, duration: k.duration, createdAt: k.createdAt, url: stamp(k.file), current: k.createdAt === track?.createdAt })),
 		animatic: anim && existsSync(anim) ? { url: stamp(anim), createdAt: statSync(anim).mtimeMs } : null,
 		voices: VOICES,
 		renders,

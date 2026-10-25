@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import * as V from './voice';
 
 // Fixtures: `shots(3, 3)` are s01, s02 of 3 s; a line is [key, first word, end of last word] in the take.
@@ -331,5 +334,47 @@ describe('pronunciation lexicon', () => {
 		expect(V.respell('Rendez-vous sur omeon.ai', lex)).toBe('Rendez-vous sur Oméone point A I');
 		expect(V.respell('Omeonix et préomeon restent.', lex)).toBe('Omeonix et préomeon restent.');
 		expect(V.respell('Rien à changer.', {})).toBe('Rien à changer.');
+	});
+});
+
+describe('takes: every recording is kept and can be chosen again', () => {
+	const sh = (text: string) => [{ key: 's01', data: { voiceover: text } }];
+	/** A take as voice_generate writes it: `<tag>.wav` and its `<tag>.json` record, plus the files kept beside it. */
+	function take(vdir: string, tag: string, text: string, createdAt: number, wav = true) {
+		const dir = V.voiceDir(vdir);
+		mkdirSync(dir, { recursive: true });
+		const file = join(dir, `${tag}.wav`);
+		if (wav) writeFileSync(file, '');
+		writeFileSync(join(dir, `${tag}.json`), JSON.stringify({ storyboardVersion: 1, voice: 'Algieba', file, start: 0.3, duration: 2, words: [], lines: [{ key: 's01', text, start: 0, end: 2 }], createdAt }));
+		writeFileSync(join(dir, `${tag}.script.json`), '{}');
+	}
+
+	test('lists the takes of the current lines, newest first, and skips voice.json, script and placement files', () => {
+		const vdir = mkdtempSync(join(tmpdir(), 'choreon-takes-'));
+		try {
+			take(vdir, 'v1-a', 'Hello.', 1);
+			take(vdir, 'v1-b', 'Hello.', 3);
+			take(vdir, 'v1-old', 'Goodbye.', 2);
+			take(vdir, 'v1-gone', 'Hello.', 4, false);
+			writeFileSync(join(V.voiceDir(vdir), 'voice.json'), '{}');
+			writeFileSync(join(V.voiceDir(vdir), 'v1-b.placed.json'), '{}');
+			expect(V.listTakes(vdir, sh('Hello.')).map((k) => k.tag)).toEqual(['v1-b', 'v1-a']);
+			expect(V.listTakes(vdir, sh('Goodbye.')).map((k) => k.tag)).toEqual(['v1-old']);
+			expect(V.listTakes(null, sh('Hello.'))).toEqual([]);
+		} finally {
+			rmSync(vdir, { recursive: true, force: true });
+		}
+	});
+
+	test('readTake only reads a plain tag inside the voice folder', () => {
+		const vdir = mkdtempSync(join(tmpdir(), 'choreon-takes-'));
+		try {
+			take(vdir, 'v1-a', 'Hello.', 1);
+			expect(V.readTake(vdir, 'v1-a')?.voice).toBe('Algieba');
+			expect(V.readTake(vdir, '../v1-a')).toBeNull();
+			expect(V.readTake(vdir, 'missing')).toBeNull();
+		} finally {
+			rmSync(vdir, { recursive: true, force: true });
+		}
 	});
 });

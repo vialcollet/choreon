@@ -21,7 +21,7 @@ import { authFile, hasAuth, kitDir, type UiComponent, type UiKit } from './uikit
 import { ownHouseRules } from './workspace';
 import { secret } from './secrets';
 import { selfHarvestEnv, studioPort } from './service-auth';
-import { fitToVoice, lexiconOf, placeLines, readVoice, respell, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
+import { fitToVoice, lexiconOf, placeLines, readTake, readVoice, respell, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
 
 // Studio jobs. Each job is a run (live log); runs of the same video
 // execute one after the other. The production loop of a shot:
@@ -799,29 +799,42 @@ const voiceGenerate: Handler = async (run, signal) => {
 	const shots = S.listShots(sb.id);
 	const lines = scriptOf(shots);
 	if (!lines.length) throw new Error('the storyboard has no voice-over: write the lines in the shots (Voice-over field) first');
-	const gemini = secret('GEMINI_API_KEY'), groq = secret('GROQ_API_KEY');
-	if (!gemini) throw new Error('voice-over needs a Google Gemini key (Settings → API keys)');
-	if (!groq) throw new Error('voice-over needs a Groq key to time the words (Settings → API keys)');
 	const dir = ensureDir(voiceDir(vdir));
-	const prev = readVoice(vdir);
-	const voiceName = String(run.input.voice || prev?.voice || 'Charon').replace(/[^A-Za-z]/g, '') || 'Charon';
-	const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(project.settings.language);
-	const tag = `v${sb.version}-${voiceName.toLowerCase()}-${Date.now().toString(36)}`;
-	const scriptFile = join(dir, `${tag}.script.json`);
-	// The brand's lexicon respells the words the reader would mispronounce; the script and the subtitles keep the real spelling.
-	const lexicon = lexiconOf(S.readBrand(project.id).json);
-	writeFileSync(scriptFile, JSON.stringify({ lines: lines.map((l) => { const say = respell(l.text, lexicon); return say === l.text ? l : { ...l, say }; }) }, null, 1));
-	const wav = join(dir, `${tag}.wav`);
-	emit(run.id, 'log', { message: `recording ${lines.length} lines in one take (${voiceName})…` });
-	const r = await engine('voice.mjs', ['--script', scriptFile, '--out', wav, '--voice', voiceName, ...(style ? ['--style', style] : [])], run.id, signal, { GEMINI_API_KEY: gemini, GROQ_API_KEY: groq });
-	for (const l of r.log ?? []) emit(run.id, 'log', { message: l });
-	let track: VoiceTrack = { storyboardVersion: sb.version, voice: voiceName, file: wav, start: voiceStart(shots, lines, video.format.fps), duration: r.duration, words: r.words, lines: r.lines, createdAt: Date.now() };
-	writeFileSync(join(dir, `${tag}.json`), JSON.stringify(track, null, 1));
+	let track: VoiceTrack, voiceName: string, tag: string, tries = 0;
+	if (typeof run.input.take === 'string') {
+		// An earlier take of these same lines, chosen again: nothing is recorded, the film is cut to it as if it were new.
+		tag = run.input.take;
+		const take = readTake(vdir, tag);
+		if (!take) throw new Error(`take ${tag} not found`);
+		if (!voiceMatches(take, shots)) throw new Error(`take ${tag} does not read the current lines: record a new one`);
+		voiceName = take.voice;
+		track = { ...take, storyboardVersion: sb.version, start: voiceStart(shots, lines, video.format.fps) };
+		emit(run.id, 'log', { message: `using the take ${tag} (${voiceName}, ${take.duration.toFixed(1)} s)` });
+	} else {
+		const gemini = secret('GEMINI_API_KEY'), groq = secret('GROQ_API_KEY');
+		if (!gemini) throw new Error('voice-over needs a Google Gemini key (Settings → API keys)');
+		if (!groq) throw new Error('voice-over needs a Groq key to time the words (Settings → API keys)');
+		const prev = readVoice(vdir);
+		voiceName = String(run.input.voice || prev?.voice || 'Charon').replace(/[^A-Za-z]/g, '') || 'Charon';
+		const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(project.settings.language);
+		tag = `v${sb.version}-${voiceName.toLowerCase()}-${Date.now().toString(36)}`;
+		const scriptFile = join(dir, `${tag}.script.json`);
+		// The brand's lexicon respells the words the reader would mispronounce; the script and the subtitles keep the real spelling.
+		const lexicon = lexiconOf(S.readBrand(project.id).json);
+		writeFileSync(scriptFile, JSON.stringify({ lines: lines.map((l) => { const say = respell(l.text, lexicon); return say === l.text ? l : { ...l, say }; }) }, null, 1));
+		const wav = join(dir, `${tag}.wav`);
+		emit(run.id, 'log', { message: `recording ${lines.length} lines in one take (${voiceName})…` });
+		const r = await engine('voice.mjs', ['--script', scriptFile, '--out', wav, '--voice', voiceName, ...(style ? ['--style', style] : [])], run.id, signal, { GEMINI_API_KEY: gemini, GROQ_API_KEY: groq });
+		for (const l of r.log ?? []) emit(run.id, 'log', { message: l });
+		tries = r.tries;
+		track = { storyboardVersion: sb.version, voice: voiceName, file: wav, start: voiceStart(shots, lines, video.format.fps), duration: r.duration, words: r.words, lines: r.lines, createdAt: Date.now() };
+		writeFileSync(join(dir, `${tag}.json`), JSON.stringify(track, null, 1));
+	}
 	// Shots already animated keep their lengths: each line of the take moves into its own shot instead.
 	if (shotsBuilt(video, shots) || run.input.retime === false) {
 		const p = placeLines(shots.map((s) => s.duration), shots.map((s) => s.key), track);
 		const planFile = join(dir, `${tag}.placed.json`), placedWav = join(dir, `${tag}.placed.wav`);
-		writeFileSync(planFile, JSON.stringify({ voice: wav, duration: shots.reduce((a, s) => a + s.duration, 0), splices: p.splices }, null, 1));
+		writeFileSync(planFile, JSON.stringify({ voice: track.file, duration: shots.reduce((a, s) => a + s.duration, 0), splices: p.splices }, null, 1));
 		await engine('voice-place.mjs', ['--plan', planFile, '--out', placedWav], run.id, signal);
 		track = { ...track, ...p.track, file: placedWav, placed: true };
 		emit(run.id, 'log', { message: `lines placed in their shots${p.late.length ? `; too long for their shot: ${p.late.join(', ')} (shorten the line or lengthen the shot)` : ''}` });
@@ -833,7 +846,7 @@ const voiceGenerate: Handler = async (run, signal) => {
 	emit(run.id, 'log', { message: cut ? `shots cut to the voice: ${shots.map((s, i) => `${s.key} ${s.duration}→${durations[i]}`).join(', ')} (film ${total.toFixed(2)} s)` : 'shots already animated in this take: lengths kept, words placed in each shot' });
 	emit(run.id, 'artifact', { kind: 'voice', voice: voiceName, duration: track.duration, lines: lines.length, retimed: cut });
 	enqueueFollowUp(run, 'animatic', {});
-	return { voice: voiceName, duration: track.duration, retimed: cut, total: +total.toFixed(2), tries: r.tries };
+	return { voice: voiceName, take: tag, duration: track.duration, retimed: cut, total: +total.toFixed(2), tries };
 };
 
 /** Animatic: the storyboard images held for each shot's length, over the voice. Seconds to make, no agent. */

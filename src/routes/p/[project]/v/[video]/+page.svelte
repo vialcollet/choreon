@@ -142,6 +142,19 @@
 				{:else if voiced}
 					<p class="small faint" style="margin: 0">{t('No voice-over recorded yet: the animatic will be silent.')}</p>
 				{/if}
+				{#if data.takes.length > 1}
+					<div class="col takes">
+						<span class="small faint">{t('Takes of these lines: every take reads differently, listen and keep the best one.')}</span>
+						{#each data.takes as k, i (k.tag)}
+							<div class="row small">
+								<span class="take-n">{t('Take {n}', { n: data.takes.length - i })}</span>
+								<span class="faint">{k.voice} · {k.duration.toFixed(1)} s</span>
+								<audio controls preload="none" src={k.url}></audio>
+								{#if k.current}<span class="faint">{t('in use')}</span>{:else}<button class="small ghost" disabled={recording} onclick={() => job({ kind: 'voice_generate', take: k.tag })}>{t('Use this take')}</button>{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
 				{#if data.animatic}
 					{#key data.animatic.url}<Player src={data.animatic.url} fps={data.video.format.fps} chapters={animChapters} loop={false} />{/key}
 				{/if}
@@ -192,4 +205,7 @@
 	.shots { display: grid; gap: 0; }
 	.shots > :global(.shot) { padding: 56px 0; border-top: 1px solid var(--line-soft); }
 	@media (max-width: 1100px) { .sbp { padding: 0 24px 64px; } .bar { margin: 0 -24px; padding: 12px 24px; } .logline { font-size: 19px; } }
+	.takes { gap: 6px; }
+	.takes audio { height: 28px; }
+	.take-n { min-width: 4.5em; }
 </style>
