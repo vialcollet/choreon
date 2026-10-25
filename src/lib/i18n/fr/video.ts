@@ -63,6 +63,8 @@ export default {
 	'subtle': 'sobre',
 	'balanced': 'équilibré',
 	'with music': 'avec musique',
+	'Sound effects level': 'Niveau des bruitages',
+	'effects': 'bruitages',
 	'music': 'musique',
 	'Imports the latest shot renders into DaVinci Resolve and creates a timeline (the choreon_bridge must be running)': 'Importe les derniers rendus des plans dans DaVinci Resolve et crée une timeline (le pont choreon_bridge doit tourner)',
 	'Send to Resolve': 'Envoyer vers Resolve',

@@ -72,7 +72,7 @@ export interface Render {
 	version: number;
 	file: string;
 	url: string;
-	qa: { contact?: string; strip?: string; phone?: string; stills?: string[]; contactFps?: number; duration?: number; hasAudio?: boolean; sound?: string; voice?: boolean };
+	qa: { contact?: string; strip?: string; phone?: string; stills?: string[]; contactFps?: number; duration?: number; hasAudio?: boolean; sound?: string; voice?: boolean; sfxGain?: number };
 	runId: string | null;
 	createdAt: number;
 }

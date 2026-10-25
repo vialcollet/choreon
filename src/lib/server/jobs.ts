@@ -255,6 +255,12 @@ function roleModel(run: S.Run, project: S.Project, role: Role): ModelChoice & { 
 	return { ...modelFor(project, role, { model: run.input.model as string | undefined, effort: run.input.effort as ModelChoice['effort'] | undefined }), lang: project.settings.language ?? 'fr' };
 }
 
+/** Sound effects level asked for a mix (1 = as designed); anything that is not a positive number gives 1. The engine bounds it (−6 to +3 dB). */
+export function sfxGainOf(v: unknown): number {
+	const g = typeof v === 'string' ? Number(v) : v;
+	return typeof g === 'number' && Number.isFinite(g) && g > 0 ? g : 1;
+}
+
 /**
  * Legibility rule by format: in landscape, only the text that carries the message must read
  * on a phone; in portrait (meant for mobile), the text that carries the action too.
@@ -779,9 +785,10 @@ End with a summary: which gestures get a sound, which stay silent and why.`;
 	const out = join(vdir, 'renders', `${tag}.mp4`);
 	// Music: from the bank ("music:<id>", resolved by the engine) or from the project library.
 	const musicArg = plan.music?.startsWith('music:') ? plan.music : plan.music && existsSync(join(pdir, plan.music)) ? join(pdir, plan.music) : null;
-	const mixed = await engine('sfx.mjs', ['--mix', '--video', base.file, '--sfx', sfx, ...(musicArg ? ['--music', musicArg, '--music-gain', String(plan.musicGain ?? 0.3), '--music-start', String(plan.musicStart ?? 0)] : []), ...(voice ? ['--voice', voice.file, '--voice-start', String(voice.start)] : []), '--out', out], run.id, signal);
+	const sfxGain = sfxGainOf(run.input.sfxGain);
+	const mixed = await engine('sfx.mjs', ['--mix', '--video', base.file, '--sfx', sfx, '--sfx-gain', String(sfxGain), ...(musicArg ? ['--music', musicArg, '--music-gain', String(plan.musicGain ?? 0.3), '--music-start', String(plan.musicStart ?? 0)] : []), ...(voice ? ['--voice', voice.file, '--voice-start', String(voice.start)] : []), '--out', out], run.id, signal);
 	if (mixed.gains) emit(run.id, 'log', { message: `mix (dB): ${Object.entries(mixed.gains).map(([k, v]) => `${k} ${v}`).join(', ')}` });
-	const render = S.createRender({ videoId: video.id, shotKey: null, version, file: out, qa: { ...base.qa, hasAudio: true, sound: style, voice: !!voice }, runId: run.id });
+	const render = S.createRender({ videoId: video.id, shotKey: null, version, file: out, qa: { ...base.qa, hasAudio: true, sound: style, voice: !!voice, sfxGain }, runId: run.id });
 	emit(run.id, 'artifact', { kind: 'render', renderId: render.id, shotKey: null, version, audio: true, style, voice: !!voice, cues: plan.cues?.length ?? 0, music: plan.music ?? null });
 	return { renderId: render.id, version };
 };

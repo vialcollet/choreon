@@ -32,6 +32,7 @@
 	let player: Player | undefined = $state();
 	let err = $state('');
 	let soundStyle = $state<'sobre' | 'equilibre' | 'musique'>('equilibre');
+	let sfxGain = $state(1);
 
 	const markers = $derived([
 		...shotNotes.filter((n) => n.t != null && n.renderId === render?.id).map((n) => ({ t: n.t!, kind: 'note' as const, label: n.body })),
@@ -176,13 +177,18 @@
 				<span class="spacer"></span>
 				<button class="small" disabled={!allRendered} onclick={() => job({ kind: 'assemble' })} title={allRendered ? '' : t('Every shot needs at least one render')}><Clapperboard size={14} /> {t('Assemble video')}</button>
 				<div class="sound">
-					<button class="small" disabled={!data.renders.some((r) => r.shotKey === null && !r.qa.hasAudio)} onclick={() => job({ kind: 'sound_design', style: soundStyle })} title={t('One sound per gesture, a continuous layer, shared reverb; real recordings and music from the library')}><AudioLines size={14} /> {t('Sound design')}</button>
+					<button class="small" disabled={!data.renders.some((r) => r.shotKey === null && !r.qa.hasAudio)} onclick={() => job({ kind: 'sound_design', style: soundStyle, sfxGain })} title={t('One sound per gesture, a continuous layer, shared reverb; real recordings and music from the library')}><AudioLines size={14} /> {t('Sound design')}</button>
 					<select bind:value={soundStyle} title={t('Sound mix')}>
 						<option value="sobre">{t('subtle')}</option>
 						<option value="equilibre">{t('balanced')}</option>
 						<option value="musique">{t('with music')}</option>
 					</select>
-					<button class="small ghost" disabled={!soundCut} onclick={() => job({ kind: 'sound_design', style: soundStyle, remix: true })} title={t('Same sound design, new mix (after a new voice-over take)')}>{t('Remix')}</button>
+					<select bind:value={sfxGain} title={t('Sound effects level')}>
+						<option value={1}>{t('effects')} 100 %</option>
+						<option value={0.7}>{t('effects')} 70 %</option>
+						<option value={0.5}>{t('effects')} 50 %</option>
+					</select>
+					<button class="small ghost" disabled={!soundCut} onclick={() => job({ kind: 'sound_design', style: soundStyle, sfxGain, remix: true })} title={t('Same sound design, new mix (after a new voice-over take)')}>{t('Remix')}</button>
 				</div>
 				<button class="small ghost" disabled={!allRendered} onclick={() => job({ kind: 'resolve_export' })} title={t('Imports the latest shot renders into DaVinci Resolve and creates a timeline (the choreon_bridge must be running)')}><MonitorPlay size={14} /> {t('Send to Resolve')}</button>
 			</div>

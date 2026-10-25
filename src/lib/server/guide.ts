@@ -272,17 +272,17 @@ function studioTools(locals: App.Locals, report: (t: GuideTool) => void) {
 				}
 				return { framing: next.status === 'ready' ? 'ready: the storyboard can be generated' : 'the director is reviewing the remaining axes' };
 			}, { mutates: true })),
-			tool('start_job', `Starts a studio task. These run agents and COST money: only call with confirmed=true once the user has clearly agreed to this specific task (or asked for it in so many words). Kinds: ${JOBS.map((k) => `${k} (${JOB_LABEL[k]})`).join(', ')}. shot_build/shot_fix need shotKey; shot_fix uses open notes of the shot (noteIds) or an instruction; sound_design takes style sobre|equilibre|musique; storyboard_revise uses open storyboard notes (noteIds); reference_scout takes count.`, {
+			tool('start_job', `Starts a studio task. These run agents and COST money: only call with confirmed=true once the user has clearly agreed to this specific task (or asked for it in so many words). Kinds: ${JOBS.map((k) => `${k} (${JOB_LABEL[k]})`).join(', ')}. shot_build/shot_fix need shotKey; shot_fix uses open notes of the shot (noteIds) or an instruction; sound_design takes style sobre|equilibre|musique and an optional sfxGain (1 = as designed, 0.5 = effects 6 dB lower); storyboard_revise uses open storyboard notes (noteIds); reference_scout takes count.`, {
 				projectId: z.string(), video: z.string().optional().describe('video id or slug (all kinds except reference_scout)'), kind: z.enum(JOBS), confirmed: z.boolean().describe('true only if the user agreed to spend on this task'),
-				shotKey: z.string().optional(), noteIds: z.array(z.string()).optional(), style: z.enum(['sobre', 'equilibre', 'musique']).optional(), count: z.number().int().min(1).max(12).optional()
-			}, wrap('start_job', (a) => `Started ${JOB_LABEL[a.kind as (typeof JOBS)[number]]}${a.shotKey ? ` · ${a.shotKey}` : ''}`, (a: { projectId: string; video?: string; kind: (typeof JOBS)[number]; confirmed: boolean; shotKey?: string; noteIds?: string[]; style?: string; count?: number }) => {
+				shotKey: z.string().optional(), noteIds: z.array(z.string()).optional(), style: z.enum(['sobre', 'equilibre', 'musique']).optional(), sfxGain: z.number().min(0.5).max(1.4).optional(), count: z.number().int().min(1).max(12).optional()
+			}, wrap('start_job', (a) => `Started ${JOB_LABEL[a.kind as (typeof JOBS)[number]]}${a.shotKey ? ` · ${a.shotKey}` : ''}`, (a: { projectId: string; video?: string; kind: (typeof JOBS)[number]; confirmed: boolean; shotKey?: string; noteIds?: string[]; style?: string; sfxGain?: number; count?: number }) => {
 				if (!a.confirmed) throw new Error('not confirmed: ask the user first, then call again with confirmed=true');
 				const p = project(a.projectId);
 				const v = a.video ? video(p.id, a.video) : null;
 				if (!v && a.kind !== 'reference_scout') throw new Error('this task needs a video');
 				if ((a.kind === 'shot_build' || a.kind === 'shot_fix') && !a.shotKey) throw new Error('shotKey required');
 				if (a.kind === 'storyboard_generate' && v && v.briefState.status !== 'ready') throw new Error('the framing is not ready yet: answer the open questions first');
-				const body: Record<string, unknown> = { projectId: p.id, videoId: v?.id ?? null, round: 0, shotKey: a.shotKey, noteIds: a.noteIds, ...(a.style ? { style: a.style } : {}) };
+				const body: Record<string, unknown> = { projectId: p.id, videoId: v?.id ?? null, round: 0, shotKey: a.shotKey, noteIds: a.noteIds, ...(a.style ? { style: a.style } : {}), ...(a.sfxGain ? { sfxGain: a.sfxGain } : {}) };
 				if (a.kind === 'reference_scout') Object.assign(body, { lane: 'refs', count: a.count ?? 4, ...(v ? { forVideo: v.id, title: `References — shortlist · ${v.title}` } : {}) });
 				if (a.kind === 'brief_review' && v) S.setBriefState(v.id, { ...v.briefState, status: 'reviewing' });
 				const title = jobTitle(a.kind, body);

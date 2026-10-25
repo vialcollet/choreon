@@ -174,3 +174,14 @@ describe('captureInto (bd60280c)', () => {
 		expect(siblings(raw)).toEqual(['.old.home-extra.deadrun']);
 	});
 });
+
+describe('sfxGainOf', () => {
+	test('keeps a positive level, from a number or a form string', () => {
+		expect(jobs.sfxGainOf(0.5)).toBe(0.5);
+		expect(jobs.sfxGainOf('0.7')).toBe(0.7);
+	});
+
+	test('falls back to the designed level (1) for anything else', () => {
+		for (const v of [undefined, null, 0, -1, NaN, Infinity, 'loud', {}]) expect(jobs.sfxGainOf(v)).toBe(1);
+	});
+});
