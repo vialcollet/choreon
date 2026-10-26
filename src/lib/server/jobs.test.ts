@@ -185,3 +185,21 @@ describe('sfxGainOf', () => {
 		for (const v of [undefined, null, 0, -1, NaN, Infinity, 'loud', {}]) expect(jobs.sfxGainOf(v)).toBe(1);
 	});
 });
+
+describe('pickCaptionStyle', () => {
+	const fonts = ['Brand-Regular.ttf', 'Brand-Italic.ttf', 'Brand-SemiBold.ttf', 'Brand-Bold.ttf', 'Mono-SemiBold.ttf'];
+	const colors = { paper: '#f9fafc', ink: '#0e172b', red: '#c0392b', grey: '#989fab' };
+
+	test('without a captions entry: semibold font, darkest colour, most saturated one for the spoken word', () => {
+		expect(jobs.pickCaptionStyle({ colors }, fonts)).toEqual({ font: 'Brand-SemiBold.ttf', color: '#0e172b', active: '#c0392b' });
+	});
+
+	test('the brand kit\'s captions entry wins, an unknown font file is ignored', () => {
+		expect(jobs.pickCaptionStyle({ colors, captions: { font: 'Brand-Bold.ttf', active: '#4f7d69' } }, fonts)).toEqual({ font: 'Brand-Bold.ttf', color: '#0e172b', active: '#4f7d69' });
+		expect(jobs.pickCaptionStyle({ captions: { font: 'missing.ttf' } }, ['Brand-Bold.ttf']).font).toBe('Brand-Bold.ttf');
+	});
+
+	test('an empty kit still gives a usable style', () => {
+		expect(jobs.pickCaptionStyle({}, [])).toEqual({ font: null, color: '#111111', active: '#2563eb' });
+	});
+});

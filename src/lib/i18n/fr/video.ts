@@ -65,6 +65,8 @@ export default {
 	'with music': 'avec musique',
 	'Sound effects level': 'Niveau des bruitages',
 	'effects': 'bruitages',
+	'Captions': 'Sous-titres',
+	'Burns the voice-over words into the picture, the spoken word highlighted': 'Incruste les mots de la voix off dans l’image, le mot prononcé mis en avant',
 	'music': 'musique',
 	'Imports the latest shot renders into DaVinci Resolve and creates a timeline (the choreon_bridge must be running)': 'Importe les derniers rendus des plans dans DaVinci Resolve et crée une timeline (le pont choreon_bridge doit tourner)',
 	'Send to Resolve': 'Envoyer vers Resolve',
