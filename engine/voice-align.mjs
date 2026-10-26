@@ -67,11 +67,20 @@ export function align(script, heard) {
  * read that line and must not be kept.
  */
 export function placeLines(lines, script, words, map) {
-	const out = [];
+	const span = [];
 	for (let li = 0; li < lines.length; li++) {
-		const idx = script.map((s, i) => (s.li === li ? map[i] : -1)).filter((x) => x >= 0);
+		const own = script.map((s, i) => (s.li === li ? i : -1)).filter((i) => i >= 0);
+		const idx = own.map((i) => map[i]).filter((x) => x >= 0);
 		if (!idx.length) return null;
-		out.push({ key: lines[li].key, text: lines[li].text.trim(), start: words[Math.min(...idx)].t, end: words[Math.max(...idx)].end });
+		span.push({ lo: Math.min(...idx), hi: Math.max(...idx), headLost: map[own[0]] < 0, tailLost: map[own[own.length - 1]] < 0 });
 	}
-	return out;
+	// A line whose first (last) word was not matched ("Omeon" heard "Hommeon") keeps the unclaimed heard words just
+	// before (after) it, as long as the neighbouring line's edge was matched: cutting there would drop speech.
+	const bounds = span.map((s, li) => {
+		const prev = span[li - 1], next = span[li + 1];
+		const lo = s.headLost && (!prev || !prev.tailLost) ? (prev ? prev.hi + 1 : 0) : s.lo;
+		const hi = s.tailLost && (!next || !next.headLost) ? (next ? next.lo - 1 : words.length - 1) : s.hi;
+		return { lo: Math.min(lo, s.lo), hi: Math.max(hi, s.hi) };
+	});
+	return lines.map((l, li) => ({ key: l.key, text: l.text.trim(), start: words[bounds[li].lo].t, end: words[bounds[li].hi].end }));
 }

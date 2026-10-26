@@ -73,6 +73,21 @@ describe('voice-align', () => {
 		expect(two).toEqual([{ w: '8 heures', n: '8h', t: 0, end: 0.9 }]);
 	});
 
+	test('a line whose first word was misheard keeps the heard word before it, so the take is not cut there', async () => {
+		const A = await load();
+		const ls = [{ key: 's05', text: 'vos clients.' }, { key: 's06', text: 'Oméonne. Plus de temps.' }];
+		const got = heard('vos', 'clients.', 'Hommeon.', 'Plus', 'de', 'temps.');
+		const { map, placed } = place(A, ls, got);
+		expect(map[2]).toBe(-1);
+		expect(placed[1].start).toBe(got[2].t);
+		expect(placed[0].end).toBe(got[1].end);
+		// Same at the end of a line; a heard word between two matched edges stays unclaimed.
+		const tail = place(A, [{ key: 'a', text: 'merci Oméonne.' }, { key: 'b', text: 'Plus tard.' }], heard('merci', 'Hommeon.', 'Plus', 'tard.'));
+		expect(tail.placed[0].end).toBe(0.9);
+		const noise = place(A, [{ key: 'a', text: 'un deux.' }, { key: 'b', text: 'trois quatre.' }], heard('un', 'deux.', 'euh', 'trois', 'quatre.'));
+		expect(noise.placed.map((l: any) => [l.start, l.end])).toEqual([[0, 0.9], [1.5, 2.4]]);
+	});
+
 	test('a number without an hour unit, or a lone "h", is left alone', async () => {
 		const A = await load();
 		expect(A.joinTimes([{ w: '12' }, { w: 'm2' }, { w: 'h' }]).map((x: any) => x.w)).toEqual(['12', 'm2', 'h']);
