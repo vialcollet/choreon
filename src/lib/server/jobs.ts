@@ -255,9 +255,16 @@ function roleModel(run: S.Run, project: S.Project, role: Role): ModelChoice & { 
 	return { ...modelFor(project, role, { model: run.input.model as string | undefined, effort: run.input.effort as ModelChoice['effort'] | undefined }), lang: project.settings.language ?? 'fr' };
 }
 
-/** Caption look from the brand kit: `brand.json` → `captions` ({ font, color, active }) when set, else the kit's semibold (or bold) font, its darkest colour for the text and its most saturated one for the spoken word. */
-export function pickCaptionStyle(brand: Record<string, unknown>, fonts: string[]): { font: string | null; color: string; active: string } {
-	const own = (brand.captions ?? {}) as { font?: string; color?: string; active?: string };
+export type CaptionHighlight = 'color' | 'box';
+export const CAPTION_HIGHLIGHTS: CaptionHighlight[] = ['color', 'box'];
+
+/**
+ * Caption look from the brand kit: `brand.json` → `captions` ({ font, color, active, highlight, activeText }) when
+ * set, else the kit's semibold (or bold) font, its darkest colour for the text and its most saturated one for the
+ * spoken word, highlighted in colour ("box": white on a box of that colour).
+ */
+export function pickCaptionStyle(brand: Record<string, unknown>, fonts: string[]): { font: string | null; color: string; active: string; highlight: CaptionHighlight; activeText: string } {
+	const own = (brand.captions ?? {}) as { font?: string; color?: string; active?: string; highlight?: string; activeText?: string };
 	const hex = Object.values((brand.colors ?? {}) as Record<string, unknown>).filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c));
 	const rgb = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255);
 	const lum = (c: string) => rgb(c).reduce((a, x, i) => a + x * [0.2126, 0.7152, 0.0722][i], 0);
@@ -267,7 +274,9 @@ export function pickCaptionStyle(brand: Record<string, unknown>, fonts: string[]
 	return {
 		font,
 		color: own.color ?? [...hex].sort((a, b) => lum(a) - lum(b))[0] ?? '#111111',
-		active: own.active ?? [...hex].filter((c) => lum(c) > 0.08 && lum(c) < 0.8).sort((a, b) => sat(b) - sat(a))[0] ?? '#2563eb'
+		active: own.active ?? [...hex].filter((c) => lum(c) > 0.08 && lum(c) < 0.8).sort((a, b) => sat(b) - sat(a))[0] ?? '#2563eb',
+		highlight: CAPTION_HIGHLIGHTS.find((h) => h === own.highlight) ?? 'color',
+		activeText: own.activeText ?? '#ffffff'
 	};
 }
 
@@ -820,11 +829,13 @@ End with a summary: which gestures get a sound, which stay silent and why.`;
 	if (mixed.gains) emit(run.id, 'log', { message: `mix (dB): ${Object.entries(mixed.gains).map(([k, v]) => `${k} ${v}`).join(', ')}` });
 	if (captions && voice) {
 		const cs = captionStyle(pdir);
+		// The highlight asked for this mix wins over the brand kit's.
+		const highlight = CAPTION_HIGHLIGHTS.find((h) => h === run.input.captionHighlight) ?? cs.highlight;
 		const words = join(adir, 'captions-take.json');
 		writeFileSync(words, JSON.stringify({ lines: voice.lines, words: voice.words }));
-		const c = await engine('captions.mjs', ['--voice', words, '--start', String(voice.start), '--video', mixOut, '--out', out, '--ass', join(adir, 'captions.ass'), '--color', cs.color, '--active', cs.active, ...(cs.font ? ['--font', cs.font] : [])], run.id, signal);
+		const c = await engine('captions.mjs', ['--voice', words, '--start', String(voice.start), '--video', mixOut, '--out', out, '--ass', join(adir, 'captions.ass'), '--color', cs.color, '--active', cs.active, '--highlight', highlight, '--active-text', cs.activeText, ...(cs.font ? ['--font', cs.font] : [])], run.id, signal);
 		rmSync(mixOut, { force: true });
-		emit(run.id, 'log', { message: `captions: ${c.groups} groups (${c.family})` });
+		emit(run.id, 'log', { message: `captions: ${c.groups} groups (${c.family}, ${highlight})` });
 	}
 	const render = S.createRender({ videoId: video.id, shotKey: null, version, file: out, qa: { ...base.qa, hasAudio: true, sound: style, voice: !!voice, sfxGain, captions }, runId: run.id });
 	emit(run.id, 'artifact', { kind: 'render', renderId: render.id, shotKey: null, version, audio: true, style, voice: !!voice, cues: plan.cues?.length ?? 0, music: plan.music ?? null });

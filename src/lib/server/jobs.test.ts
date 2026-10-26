@@ -191,15 +191,16 @@ describe('pickCaptionStyle', () => {
 	const colors = { paper: '#f9fafc', ink: '#0e172b', red: '#c0392b', grey: '#989fab' };
 
 	test('without a captions entry: semibold font, darkest colour, most saturated one for the spoken word', () => {
-		expect(jobs.pickCaptionStyle({ colors }, fonts)).toEqual({ font: 'Brand-SemiBold.ttf', color: '#0e172b', active: '#c0392b' });
+		expect(jobs.pickCaptionStyle({ colors }, fonts)).toEqual({ font: 'Brand-SemiBold.ttf', color: '#0e172b', active: '#c0392b', highlight: 'color', activeText: '#ffffff' });
 	});
 
 	test('the brand kit\'s captions entry wins, an unknown font file is ignored', () => {
-		expect(jobs.pickCaptionStyle({ colors, captions: { font: 'Brand-Bold.ttf', active: '#4f7d69' } }, fonts)).toEqual({ font: 'Brand-Bold.ttf', color: '#0e172b', active: '#4f7d69' });
+		expect(jobs.pickCaptionStyle({ colors, captions: { font: 'Brand-Bold.ttf', active: '#4f7d69', highlight: 'box' } }, fonts)).toEqual({ font: 'Brand-Bold.ttf', color: '#0e172b', active: '#4f7d69', highlight: 'box', activeText: '#ffffff' });
+		expect(jobs.pickCaptionStyle({ captions: { highlight: 'neon' } }, fonts).highlight).toBe('color');
 		expect(jobs.pickCaptionStyle({ captions: { font: 'missing.ttf' } }, ['Brand-Bold.ttf']).font).toBe('Brand-Bold.ttf');
 	});
 
 	test('an empty kit still gives a usable style', () => {
-		expect(jobs.pickCaptionStyle({}, [])).toEqual({ font: null, color: '#111111', active: '#2563eb' });
+		expect(jobs.pickCaptionStyle({}, [])).toEqual({ font: null, color: '#111111', active: '#2563eb', highlight: 'color', activeText: '#ffffff' });
 	});
 });

@@ -44,13 +44,25 @@ describe('groupWords', () => {
 		expect(texts(groupWords([...ws(0, 'Une question ?'), ...ws(1, 'Omeon répond.')]))).toEqual(['Une question ?', 'Omeon répond.']);
 	});
 
-	test('a long phrase is cut into balanced groups, never over maxWords', () => {
-		expect(texts(groupWords(ws(0, 'Omeon a préparé votre journée :')))).toEqual(['Omeon a préparé', 'votre journée :']);
+	test('a sentence that fits stays whole, commas included', () => {
+		expect(texts(groupWords(ws(0, 'Omeon a préparé votre journée : priorités, messages.')))).toEqual(['Omeon a préparé votre journée :', 'priorités, messages.']);
+	});
+
+	test('a long sentence is cut into balanced groups, at a comma when one is near, never over maxWords', () => {
+		expect(texts(groupWords(ws(0, 'Omeon répond avec vos notes, vos fichiers et vos clients.')))).toEqual(['Omeon répond avec vos notes,', 'vos fichiers et vos clients.']);
 		for (const g of groupWords(ws(0, 'a b c d e f g h i j'), { maxWords: 4, maxChars: 99 })) expect(g.length).toBeLessThanOrEqual(4);
 	});
 });
 
 describe('toAss', () => {
+	test('"box": the spoken word in white on a box of the active colour, the box hidden elsewhere', () => {
+		const g = groupTimes([[{ text: 'Omeon', li: 0, t: 1, end: 1.4 }, { text: 'répond.', li: 0, t: 1.4, end: 2 }]]);
+		const ass = toAss(g, { width: 1080, height: 1920, family: 'F', size: 80, y: 1555, color: '#0e172b', active: '#4f7d69', highlight: 'box' });
+		expect(ass).toContain('Style: Caption,F,80,&H002B170E,&H002B170E,&HFF697D4F,&HFF000000,0,0,0,0,100,100,0,0,3,10,0,2');
+		const ev = ass.split('\n').filter((l) => l.startsWith('Dialogue'));
+		expect(ev[0]).toContain(`{\\c${assColor('#ffffff')}\\3a&H00&}Omeon{\\c${assColor('#0e172b')}\\3a&HFF&}  répond.`);
+	});
+
 	test('one event per word, the spoken one in the active colour, shifted to film time', () => {
 		const g = groupTimes([[{ text: 'Omeon', li: 0, t: 1, end: 1.4 }, { text: 'répond.', li: 0, t: 1.4, end: 2 }]], { hold: 0.5 });
 		expect(g[0]).toMatchObject({ start: 1, end: 2.5 });

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Burned-in captions from the voice-over: the script's own words (spelling, punctuation), timed on the words the
-// take was heard saying, shown in short groups with the spoken word highlighted. Plain Node ESM.
+// take was heard saying, shown in groups (a sentence, cut at a comma when too long) with the spoken word highlighted. Plain Node ESM.
 //
 //   node engine/captions.mjs --voice track.json [--start 0.3] --video in.mp4 --out out.mp4 --font Brand-SemiBold.ttf
-//        [--color #0e172b] [--active #4f7d69] [--size 64] [--y 1500] [--max-words 4] [--ass out.ass]
+//        [--color #0e172b] [--active #4f7d69] [--highlight color|box] [--active-text #ffffff] [--size 84] [--y 1555]
+//        [--max-words 8] [--ass out.ass]
 //
 // `track.json` holds the take: { lines: [{ key, text, start, end }], words: [{ w, t, end }] }, times in the take;
-// `--start` is where the take begins in the film. `--y` is the baseline of the caption block (default: 78 % of the
+// `--start` is where the take begins in the film. `--y` is the baseline of the caption block (default: 81 % of the
 // height in portrait, 92 % in landscape).
 
 import { spawnSync } from 'node:child_process';
@@ -77,27 +78,29 @@ export function timeWords(lines, heardWords) {
 const chars = (ws) => ws.map((x) => x.text).join(' ').length;
 
 /**
- * Short groups that never span two lines: phrases end at punctuation, and a phrase over `maxWords` / `maxChars`
- * is cut into the fewest groups that fit, balanced by length (« Omeon a préparé » / « votre journée : », not 4 + 1).
+ * Caption groups that never span two lines of the script: a group ends with a sentence (« . », « ? », « ! », « : »),
+ * and a sentence over `maxWords` / `maxChars` is cut into the fewest groups that fit, balanced by length and cut at
+ * a comma when one is near (« Omeon répond avec vos notes, » / « vos fichiers et vos clients. »).
  */
-export function groupWords(words, { maxWords = 4, maxChars = 22 } = {}) {
+export function groupWords(words, { maxWords = 8, maxChars = 34 } = {}) {
 	const phrases = [];
 	let cur = [];
 	for (const w of words) {
 		if (cur.length && cur[0].li !== w.li) (phrases.push(cur), (cur = []));
 		cur.push(w);
-		if (/[.,:;?!…]$/.test(w.text)) (phrases.push(cur), (cur = []));
+		if (/[.:?!…]$/.test(w.text)) (phrases.push(cur), (cur = []));
 	}
 	if (cur.length) phrases.push(cur);
 	const groups = [];
 	for (const p of phrases) {
 		let k = Math.max(Math.ceil(p.length / maxWords), Math.ceil(chars(p) / maxChars));
 		let rest = p;
-		// Each cut is placed where the part best matches an even share of what is left; a part never exceeds maxWords.
+		// Each cut goes where the part best matches an even share of what is left, a comma counting as a third of a share closer.
 		while (k > 1 && rest.length > 1) {
 			const share = chars(rest) / k;
+			const cost = (n) => Math.abs(chars(rest.slice(0, n)) - share) - (/[,;]$/.test(rest[n - 1].text) ? share / 3 : 0);
 			let best = 1;
-			for (let n = 1; n <= Math.min(maxWords, rest.length - 1); n++) if (Math.abs(chars(rest.slice(0, n)) - share) < Math.abs(chars(rest.slice(0, best)) - share)) best = n;
+			for (let n = 1; n <= Math.min(maxWords, rest.length - 1); n++) if (cost(n) < cost(best)) best = n;
 			groups.push(rest.slice(0, best));
 			rest = rest.slice(best);
 			k--;
@@ -130,12 +133,19 @@ export const assColor = (hex) => {
 const esc = (s) => s.replace(/\\/g, '\\\\').replace(/[{}]/g, (c) => `\\${c}`);
 
 /**
- * The ASS subtitle file: one event per spoken word, the whole group shown and that word in the active colour,
- * slightly larger. `offset` moves take times to film times.
+ * The ASS subtitle file: one event per spoken word, the whole group shown and that word highlighted. `highlight`:
+ * "color" sets the word in the active colour, slightly larger; "box" puts it in white (`activeText`) on a box of the
+ * active colour (libass draws the opaque box per glyph run: it is only made visible on the spoken word).
+ * `offset` moves take times to film times.
  */
-export function toAss(timed, { width, height, family, size, y, color, active, offset = 0, scale = 108 }) {
+export function toAss(timed, { width, height, family, size, y, color, active, activeText = '#ffffff', highlight = 'color', offset = 0, scale = 108 }) {
 	const margin = Math.round(width * 0.08);
-	const head = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,${family},${size},${assColor(color)},${assColor(color)},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,${margin},${margin},${Math.max(0, height - y)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+	const box = highlight === 'box';
+	const hidden = (c) => c.replace(/^&H00/, '&HFF');
+	const look = box ? `${assColor(color)},${assColor(color)},${hidden(assColor(active))},&HFF000000,0,0,0,0,100,100,0,0,3,${Math.round(size * 0.12)},0` : `${assColor(color)},${assColor(color)},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0`;
+	const head = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,${family},${size},${look},2,${margin},${margin},${Math.max(0, height - y)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+	const on = box ? `{\\c${assColor(activeText)}\\3a&H00&}` : `{\\c${assColor(active)}\\fscx${scale}\\fscy${scale}}`;
+	const off = box ? `{\\c${assColor(color)}\\3a&HFF&}` : '{\\r}';
 	const ev = [];
 	for (const g of timed) {
 		g.words.forEach((w, i) => {
@@ -143,7 +153,9 @@ export function toAss(timed, { width, height, family, size, y, color, active, of
 			const end = i === g.words.length - 1 ? g.end : g.words[i + 1].t;
 			if (end <= start) return;
 			const fade = i === 0 ? '{\\fad(80,0)}' : '';
-			const text = g.words.map((x, k) => (k === i ? `{\\c${assColor(active)}\\fscx${scale}\\fscy${scale}}${esc(x.text)}{\\r}` : esc(x.text))).join(' ');
+			// The box eats into the spaces around the word: in "box", every space is widened (all of them, so the
+			// line does not shift as the highlight moves).
+			const text = g.words.map((x, k) => (k === i ? `${on}${esc(x.text)}${off}` : esc(x.text))).join(box ? '  ' : ' ');
 			ev.push(`Dialogue: 0,${assTime(start + offset)},${assTime(end + offset)},Caption,,0,0,0,,${fade}${text}`);
 		});
 	}
@@ -179,14 +191,14 @@ function probe(video) {
 }
 
 /** Writes the ASS next to `out` and burns it into the video (audio copied). */
-export function burn({ video, track, start = 0, out, font, color = '#111111', active = '#2563eb', size, y, maxWords = 4, ass }) {
+export function burn({ video, track, start = 0, out, font, color = '#111111', active = '#2563eb', activeText, highlight = 'color', size, y, maxWords = 8, ass }) {
 	const { width, height } = probe(video);
 	const portrait = height > width;
 	const words = timeWords(track.lines, track.words);
-	const timed = groupTimes(groupWords(words, { maxWords, maxChars: portrait ? 18 : 36 }));
+	const timed = groupTimes(groupWords(words, { maxWords, maxChars: portrait ? 34 : 56 }));
 	const family = (font && fontName(font)) || 'Arial';
 	const file = resolve(ass ?? out.replace(/\.[^.]+$/, '.ass'));
-	writeFileSync(file, toAss(timed, { width, height, family, size: size ?? Math.round(Math.min(width, height) * (portrait ? 0.078 : 0.06)), y: y ?? Math.round(height * (portrait ? 0.78 : 0.92)), color, active, offset: start }));
+	writeFileSync(file, toAss(timed, { width, height, family, size: size ?? Math.round(Math.min(width, height) * (portrait ? 0.078 : 0.06)), y: y ?? Math.round(height * (portrait ? 0.81 : 0.92)), color, active, activeText, highlight, offset: start }));
 	// Filter arguments are relative to the ASS folder: no drive letter to escape on Windows.
 	const cwd = dirname(file);
 	const fonts = font ? relative(cwd, dirname(resolve(font))).replace(/\\/g, '/') || '.' : null;
@@ -211,7 +223,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 	try {
 		const track = JSON.parse(readFileSync(resolve(o.voice), 'utf8'));
 		const num = (k) => (o[k] != null ? Number(o[k]) : undefined);
-		console.log(JSON.stringify(burn({ video: o.video, track, start: num('start') ?? 0, out: o.out, font: o.font, color: o.color, active: o.active, size: num('size'), y: num('y'), maxWords: num('max-words'), ass: o.ass })));
+		console.log(JSON.stringify(burn({ video: o.video, track, start: num('start') ?? 0, out: o.out, font: o.font, color: o.color, active: o.active, activeText: o['active-text'], highlight: o.highlight, size: num('size'), y: num('y'), maxWords: num('max-words'), ass: o.ass })));
 	} catch (e) {
 		console.log(JSON.stringify({ error: String(e.message || e) }));
 		process.exitCode = 1;
