@@ -7,7 +7,7 @@
 	import Compare from '$lib/components/Compare.svelte';
 	import NoteItem from '$lib/components/NoteItem.svelte';
 	import EvalPanel from '$lib/components/EvalPanel.svelte';
-	import { Hammer, Wand2, Gauge, Film, Clapperboard, RotateCcw, AudioLines, MonitorPlay, GitCompareArrows } from '@lucide/svelte';
+	import { Hammer, Wand2, Gauge, Film, Clapperboard, RotateCcw, AudioLines, MonitorPlay, GitCompareArrows, Languages } from '@lucide/svelte';
 	import type { Region } from '$lib/types';
 
 	const { t, tt } = useI18n();
@@ -39,6 +39,11 @@
 	const captions = $derived(captionsSet ?? vertical);
 	// Empty: the brand kit's highlight.
 	let captionHighlight = $state<'' | 'color' | 'box'>('');
+	// Translation: a new film in another language, made from this one.
+	const LANGS = [{ code: 'en', label: 'English' }, { code: 'fr', label: 'Français' }];
+	const otherLangs = $derived(LANGS.filter((l) => l.code !== data.language));
+	let translateSet = $state('');
+	const translateTo = $derived(translateSet || otherLangs[0]?.code || '');
 
 	const markers = $derived([
 		...shotNotes.filter((n) => n.t != null && n.renderId === render?.id).map((n) => ({ t: n.t!, kind: 'note' as const, label: n.body })),
@@ -201,6 +206,12 @@
 						<option value="box">{t('coloured box')}</option>
 					</select>
 					<button class="small ghost" disabled={!soundCut} onclick={() => job({ kind: 'sound_design', style: soundStyle, sfxGain, captions, ...(captionHighlight ? { captionHighlight } : {}), remix: true })} title={t('Same sound design, new mix (after a new voice-over take)')}>{t('Remix')}</button>
+				</div>
+				<div class="sound">
+					<button class="small ghost" disabled={!allRendered || !translateTo} onclick={() => job({ kind: 'video_translate', lang: translateTo })} title={t('A new film, the same one in another language: same scenes and sound design, the texts translated, then every shot checked again. Record its voice-over on its storyboard page.')}><Languages size={14} /> {t('Translate')}</button>
+					<select value={translateTo} onchange={(e) => (translateSet = e.currentTarget.value)} title={t('Language of the new film')}>
+						{#each otherLangs as l (l.code)}<option value={l.code}>{l.label}</option>{/each}
+					</select>
 				</div>
 				<button class="small ghost" disabled={!allRendered} onclick={() => job({ kind: 'resolve_export' })} title={t('Imports the latest shot renders into DaVinci Resolve and creates a timeline (the choreon_bridge must be running)')}><MonitorPlay size={14} /> {t('Send to Resolve')}</button>
 			</div>

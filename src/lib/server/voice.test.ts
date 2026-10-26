@@ -328,6 +328,13 @@ describe('pronunciation lexicon', () => {
 		expect(V.lexiconOf({ pronunciation: ['Omeon'] })).toEqual({});
 	});
 
+	test('lexiconOf: a respelling written for one language stays with it, plain entries apply to all', () => {
+		const brand = { pronunciation: { 'omeon.ai': 'Omeon dot A I', fr: { Omeon: 'Oméonne' }, en: { Omeon: 'Oh-may-on' } } };
+		expect(V.lexiconOf(brand, 'fr')).toEqual({ 'omeon.ai': 'Omeon dot A I', Omeon: 'Oméonne' });
+		expect(V.lexiconOf(brand, 'en')).toEqual({ 'omeon.ai': 'Omeon dot A I', Omeon: 'Oh-may-on' });
+		expect(V.lexiconOf(brand)).toEqual({ 'omeon.ai': 'Omeon dot A I' });
+	});
+
 	test('respell replaces whole words in any case, and nothing inside another word', () => {
 		const lex = { Omeon: 'Oméone', 'omeon.ai': 'Oméone point A I' };
 		expect(V.respell("Omeon la lit. Avec omeon, c'est fait.", lex)).toBe("Oméone la lit. Avec Oméone, c'est fait.");

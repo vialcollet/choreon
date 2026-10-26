@@ -213,7 +213,9 @@ const MIGRATIONS: (string | ((db: Database) => void))[] = [
 		session_id TEXT,
 		cost_usd REAL NOT NULL DEFAULT 0,
 		updated_at INTEGER NOT NULL
-	);`
+	);`,
+	// 6 — a film's own content language (a translated version of a film of the project).
+	'ALTER TABLE videos ADD COLUMN language TEXT'
 ];
 
 declare global {

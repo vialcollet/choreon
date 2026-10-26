@@ -8,7 +8,7 @@ import * as S from '$lib/server/store';
 import { translate } from '$lib/i18n';
 import type { RequestHandler } from './$types';
 
-const KINDS: JobKind[] = ['storyboard_generate', 'storyboard_revise', 'shot_build', 'shot_fix', 'render', 'eval', 'assemble', 'asset_generate', 'sound_design', 'resolve_export', 'lesson_distill', 'reference_analyze', 'reference_scout', 'brief_review', 'stills_render', 'ui_harvest', 'ui_login', 'voice_generate', 'animatic'];
+const KINDS: JobKind[] = ['storyboard_generate', 'storyboard_revise', 'shot_build', 'shot_fix', 'render', 'eval', 'assemble', 'asset_generate', 'sound_design', 'resolve_export', 'lesson_distill', 'reference_analyze', 'reference_scout', 'brief_review', 'stills_render', 'ui_harvest', 'ui_login', 'voice_generate', 'animatic', 'video_translate'];
 
 /** Starts a task. Body: { kind, projectId, videoId?, shotKey?, noteIds?, prompt?, name?, renderId?, auto? } */
 export const POST: RequestHandler = async ({ request, locals, url }) => {
@@ -31,6 +31,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		: b.kind === 'eval' ? `Evaluation · ${b.shotKey ?? 'video'}`
 		: b.kind === 'stills_render' ? `Stills · ${b.lot}`
 		: b.kind === 'storyboard_revise' ? `Storyboard — revision (${(b.noteIds ?? []).length} note(s))`
+		: b.kind === 'video_translate' ? `Translation · ${String(b.lang ?? '')}`
 		: undefined;
 	// byAdmin is decided here, never by the body; harvests and sign-ins of a project always share the ui queue so they run one after the other (D-21).
 	const lane = b.kind === 'ui_harvest' || b.kind === 'ui_login' ? { lane: 'ui' } : {};

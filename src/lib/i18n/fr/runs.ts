@@ -19,6 +19,8 @@ export default {
 	Assembly: 'Montage',
 	'Voice-over': 'Voix off',
 	Animatic: 'Brouillon',
+	Translation: 'Traduction',
+	translation: 'traduction',
 	Reference: 'Référence',
 	generation: 'génération',
 	revision: 'révision',

@@ -125,7 +125,7 @@ const ok = (data: unknown) => ({ content: [{ type: 'text' as const, text: typeof
 const fail = (message: string) => ({ content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true });
 
 /** Jobs the guide may start (the ones a user starts from the UI; never the internal follow-ups). */
-const JOBS = ['brief_review', 'storyboard_generate', 'storyboard_revise', 'shot_build', 'shot_fix', 'assemble', 'sound_design', 'reference_scout'] as const;
+const JOBS = ['brief_review', 'storyboard_generate', 'storyboard_revise', 'shot_build', 'shot_fix', 'assemble', 'sound_design', 'video_translate', 'reference_scout'] as const;
 const JOB_LABEL: Record<(typeof JOBS)[number], string> = {
 	brief_review: 'Framing interview',
 	storyboard_generate: 'Storyboard',
@@ -134,6 +134,7 @@ const JOB_LABEL: Record<(typeof JOBS)[number], string> = {
 	shot_fix: 'Shot fix',
 	assemble: 'Assembly',
 	sound_design: 'Sound design',
+	video_translate: 'Translation',
 	reference_scout: 'Reference shortlist'
 };
 
@@ -142,6 +143,7 @@ function jobTitle(kind: string, b: Record<string, any>): string | undefined {
 	return kind === 'shot_build' ? `Shot ${b.shotKey} — build`
 		: kind === 'shot_fix' ? `Shot ${b.shotKey} — fix (${(b.noteIds ?? []).length} note(s))`
 		: kind === 'storyboard_revise' ? `Storyboard — revision (${(b.noteIds ?? []).length} note(s))`
+		: kind === 'video_translate' ? `Translation · ${b.lang}`
 		: undefined;
 }
 
@@ -183,7 +185,7 @@ function studioTools(locals: App.Locals, report: (t: GuideTool) => void) {
 		const bs: BriefState = v.briefState;
 		const full = last(null);
 		return {
-			video: { id: v.id, slug: v.slug, title: v.title, format: v.format, targetDuration: v.targetDuration, page: pageOf(v), production: pageOf(v, '/production') },
+			video: { id: v.id, slug: v.slug, title: v.title, language: v.language, format: v.format, targetDuration: v.targetDuration, page: pageOf(v), production: pageOf(v, '/production') },
 			brief: v.brief,
 			framing: {
 				status: bs.status,
@@ -272,17 +274,18 @@ function studioTools(locals: App.Locals, report: (t: GuideTool) => void) {
 				}
 				return { framing: next.status === 'ready' ? 'ready: the storyboard can be generated' : 'the director is reviewing the remaining axes' };
 			}, { mutates: true })),
-			tool('start_job', `Starts a studio task. These run agents and COST money: only call with confirmed=true once the user has clearly agreed to this specific task (or asked for it in so many words). Kinds: ${JOBS.map((k) => `${k} (${JOB_LABEL[k]})`).join(', ')}. shot_build/shot_fix need shotKey; shot_fix uses open notes of the shot (noteIds) or an instruction; sound_design takes style sobre|equilibre|musique an optional sfxGain (1 = as designed, 0.5 = effects 6 dB lower) and captions (true burns the voice-over words in, the spoken word highlighted; captionHighlight color|box overrides the brand kit's); storyboard_revise uses open storyboard notes (noteIds); reference_scout takes count.`, {
+			tool('start_job', `Starts a studio task. These run agents and COST money: only call with confirmed=true once the user has clearly agreed to this specific task (or asked for it in so many words). Kinds: ${JOBS.map((k) => `${k} (${JOB_LABEL[k]})`).join(', ')}. shot_build/shot_fix need shotKey; shot_fix uses open notes of the shot (noteIds) or an instruction; sound_design takes style sobre|equilibre|musique an optional sfxGain (1 = as designed, 0.5 = effects 6 dB lower) and captions (true burns the voice-over words in, the spoken word highlighted; captionHighlight color|box overrides the brand kit's); storyboard_revise uses open storyboard notes (noteIds); video_translate takes lang en|fr and makes a NEW film, the same one in that language (every shot must be animated; its shots are then translated and re-checked one by one, and its voice-over is recorded afterwards on its storyboard page); reference_scout takes count.`, {
 				projectId: z.string(), video: z.string().optional().describe('video id or slug (all kinds except reference_scout)'), kind: z.enum(JOBS), confirmed: z.boolean().describe('true only if the user agreed to spend on this task'),
-				shotKey: z.string().optional(), noteIds: z.array(z.string()).optional(), style: z.enum(['sobre', 'equilibre', 'musique']).optional(), sfxGain: z.number().min(0.5).max(1.4).optional(), captions: z.boolean().optional(), captionHighlight: z.enum(['color', 'box']).optional(), count: z.number().int().min(1).max(12).optional()
-			}, wrap('start_job', (a) => `Started ${JOB_LABEL[a.kind as (typeof JOBS)[number]]}${a.shotKey ? ` · ${a.shotKey}` : ''}`, (a: { projectId: string; video?: string; kind: (typeof JOBS)[number]; confirmed: boolean; shotKey?: string; noteIds?: string[]; style?: string; sfxGain?: number; captions?: boolean; captionHighlight?: 'color' | 'box'; count?: number }) => {
+				shotKey: z.string().optional(), noteIds: z.array(z.string()).optional(), style: z.enum(['sobre', 'equilibre', 'musique']).optional(), sfxGain: z.number().min(0.5).max(1.4).optional(), captions: z.boolean().optional(), captionHighlight: z.enum(['color', 'box']).optional(), lang: z.enum(['en', 'fr']).optional(), count: z.number().int().min(1).max(12).optional()
+			}, wrap('start_job', (a) => `Started ${JOB_LABEL[a.kind as (typeof JOBS)[number]]}${a.shotKey ? ` · ${a.shotKey}` : ''}`, (a: { projectId: string; video?: string; kind: (typeof JOBS)[number]; confirmed: boolean; shotKey?: string; noteIds?: string[]; style?: string; sfxGain?: number; captions?: boolean; captionHighlight?: 'color' | 'box'; lang?: 'en' | 'fr'; count?: number }) => {
 				if (!a.confirmed) throw new Error('not confirmed: ask the user first, then call again with confirmed=true');
 				const p = project(a.projectId);
 				const v = a.video ? video(p.id, a.video) : null;
 				if (!v && a.kind !== 'reference_scout') throw new Error('this task needs a video');
 				if ((a.kind === 'shot_build' || a.kind === 'shot_fix') && !a.shotKey) throw new Error('shotKey required');
+				if (a.kind === 'video_translate' && !a.lang) throw new Error('lang required');
 				if (a.kind === 'storyboard_generate' && v && v.briefState.status !== 'ready') throw new Error('the framing is not ready yet: answer the open questions first');
-				const body: Record<string, unknown> = { projectId: p.id, videoId: v?.id ?? null, round: 0, shotKey: a.shotKey, noteIds: a.noteIds, ...(a.style ? { style: a.style } : {}), ...(a.sfxGain ? { sfxGain: a.sfxGain } : {}), ...(a.captions ? { captions: true } : {}), ...(a.captionHighlight ? { captionHighlight: a.captionHighlight } : {}) };
+				const body: Record<string, unknown> = { projectId: p.id, videoId: v?.id ?? null, round: 0, shotKey: a.shotKey, noteIds: a.noteIds, ...(a.style ? { style: a.style } : {}), ...(a.sfxGain ? { sfxGain: a.sfxGain } : {}), ...(a.captions ? { captions: true } : {}), ...(a.captionHighlight ? { captionHighlight: a.captionHighlight } : {}), ...(a.lang ? { lang: a.lang } : {}) };
 				if (a.kind === 'reference_scout') Object.assign(body, { lane: 'refs', count: a.count ?? 4, ...(v ? { forVideo: v.id, title: `References — shortlist · ${v.title}` } : {}) });
 				if (a.kind === 'brief_review' && v) S.setBriefState(v.id, { ...v.briefState, status: 'reviewing' });
 				const title = jobTitle(a.kind, body);

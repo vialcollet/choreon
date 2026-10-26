@@ -26,6 +26,8 @@ export const load: LayoutServerLoad = ({ params, url, locals }) => {
 	return {
 		project: { id: project.id, name: project.name, eval: project.settings.eval },
 		video,
+		// Language of the film's content: its own when it is a translated version, otherwise the project's.
+		language: video.language ?? project.settings.language ?? 'fr',
 		versions,
 		storyboard,
 		shots,

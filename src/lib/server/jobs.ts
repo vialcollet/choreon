@@ -1,14 +1,14 @@
 import { spawn } from 'node:child_process';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative } from 'node:path';
 import type { BriefQuestion, EvalConfig, Finding, ModelChoice, Role, ShotData, VoiceTrack } from '$lib/types';
 import { notesOf, projectNotesOf, refOf, renderOf, videoOf } from './access';
 import { extractJson, finalAnswer, runAgent } from './agent';
 import { exportToResolve } from './resolve';
 import { concatList } from './concat';
-import { normBeats } from './beats';
+import { normBeats, planAfterFix } from './beats';
 import { briefAxes, decisionsBlock, openAxes, settle } from './brief';
 import { refsBlock, setVideoRef, updateRef, upsertRef } from './refs';
 import { wsDetail, wsIndex } from './whatships';
@@ -21,6 +21,7 @@ import { authFile, hasAuth, kitDir, type UiComponent, type UiKit } from './uikit
 import { ownHouseRules } from './workspace';
 import { secret } from './secrets';
 import { selfHarvestEnv, studioPort } from './service-auth';
+import { applyTranslation, LANG_NAMES, LANGS, repointPaths, translationSource, type Lang } from './translate';
 import { fitToVoice, lexiconOf, placeLines, readTake, readVoice, respell, scriptOf, shotsBuilt, voiceDir, voiceJson, voiceMatches, voiceStart, voiceStyle } from './voice';
 
 // Studio jobs. Each job is a run (live log); runs of the same video
@@ -28,11 +29,12 @@ import { fitToVoice, lexiconOf, placeLines, readTake, readVoice, respell, script
 //   build/fix (agent) → render (engine) → QA contact sheets → critic (agent, images) →
 //   if a required axis is below its threshold and rounds remain: automatic fix → …
 
-export type JobKind = 'storyboard_generate' | 'storyboard_revise' | 'shot_build' | 'shot_fix' | 'render' | 'eval' | 'assemble' | 'asset_generate' | 'sound_design' | 'resolve_export' | 'lesson_distill' | 'reference_analyze' | 'reference_scout' | 'brief_review' | 'stills_render' | 'ui_harvest' | 'ui_login' | 'voice_generate' | 'animatic';
+export type JobKind = 'storyboard_generate' | 'storyboard_revise' | 'shot_build' | 'shot_fix' | 'render' | 'eval' | 'assemble' | 'asset_generate' | 'sound_design' | 'resolve_export' | 'lesson_distill' | 'reference_analyze' | 'reference_scout' | 'brief_review' | 'stills_render' | 'ui_harvest' | 'ui_login' | 'voice_generate' | 'animatic' | 'video_translate';
 
 const KIND_TITLES: Record<JobKind, string> = {
 	voice_generate: 'Voice-over',
 	animatic: 'Animatic',
+	video_translate: 'Translation',
 	storyboard_generate: 'Storyboard — generation',
 	storyboard_revise: 'Storyboard — revision',
 	shot_build: 'Shot — build',
@@ -250,9 +252,12 @@ function notesBlock(notes: S.Note[]): string {
 		.join('\n');
 }
 
+/** Language of a film's content: its own (a translated version), otherwise the project's. */
+const langOf = (project: S.Project, video: S.Video | null): Lang => video?.language ?? project.settings.language ?? 'fr';
+
 /** Model/effort of the role for this run (one-off override via input.model / input.effort). */
-function roleModel(run: S.Run, project: S.Project, role: Role): ModelChoice & { lang: 'en' | 'fr' } {
-	return { ...modelFor(project, role, { model: run.input.model as string | undefined, effort: run.input.effort as ModelChoice['effort'] | undefined }), lang: project.settings.language ?? 'fr' };
+function roleModel(run: S.Run, project: S.Project, role: Role): ModelChoice & { lang: Lang } {
+	return { ...modelFor(project, role, { model: run.input.model as string | undefined, effort: run.input.effort as ModelChoice['effort'] | undefined }), lang: langOf(project, run.videoId ? S.getVideo(run.videoId) : null) };
 }
 
 export type CaptionHighlight = 'color' | 'box';
@@ -388,7 +393,7 @@ Answer only with this JSON:
 	for (const k of openAxes(next, axes)) {
 		if (next.questions.some((q) => q.field === k)) continue;
 		const a = axes.find((x) => x.key === k)!;
-		next.questions.push({ field: k, question: (project.settings.language ?? 'fr') === 'fr' ? `${a.label} : quelle direction ?` : `${a.label}: which direction?`, why: a.hint, options: a.suggestions, default: a.suggestions[0] });
+		next.questions.push({ field: k, question: langOf(project, video) === 'fr' ? `${a.label} : quelle direction ?` : `${a.label}: which direction?`, why: a.hint, options: a.suggestions, default: a.suggestions[0] });
 	}
 	const final = settle(next, axes);
 	S.setBriefState(video.id, final);
@@ -559,17 +564,10 @@ Method: locate the relevant code precisely, fix it, then render stills around th
 	await runAgent({ runId: run.id, cwd: pdir, prompt: withLessons(project, prompt, video.id), role: ANIMATOR_ROLE, images, ...roleModel(run, project, 'animator'), signal });
 	// The decisions become the shot's reference: updated beat map + the notes themselves.
 	if (decisions.length) {
-		type Plan = { beats?: Array<Record<string, unknown>>; visual?: string; onScreenText?: string };
-		const plan = existsSync(beatsFile) ? extractJson<Plan>(readFileSync(beatsFile, 'utf8')) : null;
-		const planned = normBeats(plan?.beats, shot.duration);
-		const beats = planned.length ? planned : null;
-		const data: ShotData = {
-			...shot.data,
-			...(beats ? { beats } : {}),
-			...(typeof plan?.visual === 'string' && plan.visual.trim() ? { visual: plan.visual.trim() } : {}),
-			...(typeof plan?.onScreenText === 'string' ? { onScreenText: plan.onScreenText.trim() } : {}),
-			directorNotes: [...(shot.data.directorNotes ?? []), ...decisions]
-		};
+		const plan = existsSync(beatsFile) ? extractJson<Record<string, unknown>>(readFileSync(beatsFile, 'utf8')) : null;
+		// Laid over the shot as it is now, not as it was when the agent started.
+		const current = S.listShots(shot.storyboardId).find((x) => x.id === shot.id) ?? shot;
+		const { data, beats } = planAfterFix(current.data, plan, decisions, shot.duration);
 		S.updateShot(shot.id, { data });
 		emit(run.id, 'log', { message: beats ? `plan of ${key} updated from the notes (${beats.length} beats)` : `notes recorded on ${key} (the animator did not write beats.json: the beat map is unchanged)` });
 	}
@@ -872,11 +870,11 @@ const voiceGenerate: Handler = async (run, signal) => {
 		if (!groq) throw new Error('voice-over needs a Groq key to time the words (Settings → API keys)');
 		const prev = readVoice(vdir);
 		voiceName = String(run.input.voice || prev?.voice || 'Charon').replace(/[^A-Za-z]/g, '') || 'Charon';
-		const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(project.settings.language);
+		const style = typeof run.input.style === 'string' ? run.input.style.trim() : voiceStyle(langOf(project, video));
 		tag = `v${sb.version}-${voiceName.toLowerCase()}-${Date.now().toString(36)}`;
 		const scriptFile = join(dir, `${tag}.script.json`);
 		// The brand's lexicon respells the words the reader would mispronounce; the script and the subtitles keep the real spelling.
-		const lexicon = lexiconOf(S.readBrand(project.id).json);
+		const lexicon = lexiconOf(S.readBrand(project.id).json, langOf(project, video));
 		writeFileSync(scriptFile, JSON.stringify({ lines: lines.map((l) => { const say = respell(l.text, lexicon); return say === l.text ? l : { ...l, say }; }) }, null, 1));
 		const wav = join(dir, `${tag}.wav`);
 		emit(run.id, 'log', { message: `recording ${lines.length} lines in one take (${voiceName})…` });
@@ -903,6 +901,92 @@ const voiceGenerate: Handler = async (run, signal) => {
 	emit(run.id, 'artifact', { kind: 'voice', voice: voiceName, duration: track.duration, lines: lines.length, retimed: cut });
 	enqueueFollowUp(run, 'animatic', {});
 	return { voice: voiceName, take: tag, duration: track.duration, retimed: cut, total: +total.toFixed(2), tries };
+};
+
+/**
+ * Translation: a new film, the same one in another language. Its folder starts as a copy of the source's animated
+ * scenes, their shared code and the sound design's cues (repointed to the copy); an agent translates the storyboard
+ * and the shared code's on-screen text, then each shot gets its own text translated and goes through the usual
+ * render → critic loop. The shots keep the source's lengths: the voice-over recorded next is placed in them.
+ */
+const videoTranslate: Handler = async (run, signal) => {
+	const { project, video, pdir, vdir } = ctxOf(run);
+	if (!video || !vdir) throw new Error('video required');
+	const lang = LANGS.find((l) => l === run.input.lang);
+	if (!lang) throw new Error(`unknown language: ${String(run.input.lang)} (${LANGS.join(', ')})`);
+	const from = langOf(project, video);
+	if (lang === from) throw new Error(`the film is already in ${LANG_NAMES[lang]}`);
+	const sb = S.getStoryboard(video.id);
+	if (!sb) throw new Error('no storyboard to translate');
+	const shots = S.listShots(sb.id);
+	const missing = shots.filter((s) => !existsSync(join(shotDir(project.id, video.slug, s.key), 'scene.html'))).map((s) => s.key);
+	if (missing.length) throw new Error(`animate every shot before translating the film (missing: ${missing.join(', ')})`);
+	// The new film's folder is prepared before its row exists: a failed run leaves no half film in the studio, only
+	// a folder the next try replaces (one with a source.json of its own); any other folder of that name is kept.
+	let slug = S.freeSlug(project.id, `${video.slug}-${lang}`);
+	for (let i = 2; existsSync(videoDir(project.id, slug)) && !existsSync(join(videoDir(project.id, slug), 'storyboard', 'source.json')); i++) slug = S.freeSlug(project.id, `${video.slug}-${lang}-${i}`);
+	const ndir = videoDir(project.id, slug);
+	rmSync(ndir, { recursive: true, force: true });
+	const textFile = (f: string) => /\.(html?|m?js|css|json|svg)$/i.test(f);
+	const copy = (src: string, dst: string, skip: (name: string) => boolean = () => false) => {
+		if (existsSync(src)) cpSync(src, dst, { recursive: true, filter: (f) => f === src || !skip(basename(f)) });
+	};
+	copy(join(vdir, 'storyboard', 'refs'), join(ndir, 'storyboard', 'refs'));
+	for (const s of shots) copy(shotDir(project.id, video.slug, s.key), shotDir(project.id, slug, s.key), (n) => n.startsWith('_') || n === 'renders' || n === 'qa' || n === 'beats.json');
+	ensureDir(join(ndir, 'audio'));
+	if (existsSync(join(vdir, 'audio'))) for (const f of readdirSync(join(vdir, 'audio'))) if (/^cues-.*\.json$/.test(f)) copyFileSync(join(vdir, 'audio', f), join(ndir, 'audio', f));
+	for (const dir of [join(ndir, 'storyboard'), join(ndir, 'shots')]) {
+		if (!existsSync(dir)) continue;
+		for (const f of readdirSync(dir, { recursive: true, encoding: 'utf8' })) {
+			const file = join(dir, f);
+			if (!textFile(f) || !statSync(file).isFile()) continue;
+			const text = readFileSync(file, 'utf8'), next = repointPaths(text, video.slug, slug);
+			if (next !== text) writeFileSync(file, next);
+		}
+	}
+	// Code the scenes share (outside the shots' own folders) carries on-screen text too: the agent translates it once.
+	const nrel = `videos/${slug}`;
+	const shared = new Set<string>();
+	for (const s of shots) {
+		const scene = readFileSync(join(shotDir(project.id, slug, s.key), 'scene.html'), 'utf8');
+		for (const m of scene.matchAll(/\/project\/((?:videos|library)\/[^'"`\s)]+\.m?js)/g)) if (!m[1].startsWith(`${nrel}/shots/`)) shared.add(m[1]);
+	}
+	const sbDir = ensureDir(join(ndir, 'storyboard'));
+	writeFileSync(join(sbDir, 'source.json'), JSON.stringify(translationSource({ title: video.title, brief: video.brief, decisions: video.briefState.decisions }, sb, shots), null, 1));
+	const draft = join(sbDir, 'draft.json');
+	const target = LANG_NAMES[lang];
+	const prompt = `Translate the film "${video.title}" from ${LANG_NAMES[from]} into ${target}: the same film, made for native ${target} viewers. Same images, same timing; only the language changes.
+
+## 1. The storyboard
+\`${nrel}/storyboard/source.json\` holds every text of the film's plan: its title, brief, brief decisions, logline, summary and, per shot, title, intent, visual, on-screen text, voice-over, beats (state, cursor, sound), transitions, sound and the director's notes. Write \`${nrel}/storyboard/draft.json\` with exactly the same structure (same keys, the same shots in the same order, as many beats and director's notes per shot as the source), every value translated.
+- voiceover: natural spoken ${target}, with the meaning and tone of the original, said in about the same time or less: the shots keep their length and the recorded words must fit in their shot. The lines read end to end still make one script.
+- onScreenText, and on-screen text quoted in visual or beats: the wording a native ${target} product would use, about as long as the original or shorter, since it must fit the same layout.
+- Adapt the conventions to ${target} readers: times, dates, numbers, currency, names of days and months. Keep the names of brands and products and, unless the brief says otherwise, of people and companies.
+- Follow ${target} typography (quotes, spacing around punctuation).
+
+## 2. The code the scenes share
+${shared.size ? `The scenes import ${[...shared].map((f) => `\`${f}\``).join(', ')}. Translate every text these files put on screen (labels, menus, buttons, sample content), with the rules above; keep the code, the layout and the identifiers. A module outside \`${nrel}/\` with on-screen text in it: copy it under \`${nrel}/storyboard/refs/\`, translate the copy and point the scenes' import line at it (the only change allowed in a scene).` : 'The scenes import no shared module: nothing to do here.'}
+Do not translate the shots' own scenes (\`${nrel}/shots/*/scene.html\`): each shot is translated afterwards, on its own, from the translated storyboard. Do not render anything.
+
+End with the choices you made (terms, conventions), in a few lines.`;
+	await runAgent({ runId: run.id, cwd: pdir, prompt, role: `You are the studio's localizer: you adapt films for native viewers of another language, faithful to the meaning, the tone and the timing, never word for word.`, ...roleModel(run, project, 'director'), lang, signal });
+	if (!existsSync(draft)) throw new Error('the agent did not write storyboard/draft.json');
+	const t = applyTranslation(shots, extractJson(readFileSync(draft, 'utf8')), (f) => {
+		const moved = f && f.startsWith(vdir) ? join(ndir, relative(vdir, f)) : f;
+		return moved && existsSync(moved) ? moved : f;
+	});
+	const nv = S.createVideo(project.id, { title: String(run.input.videoTitle || t.title || `${video.title} (${lang})`), brief: t.brief || video.brief, format: video.format, targetDuration: video.targetDuration, slug, language: lang });
+	const decisions = Object.fromEntries(Object.entries(video.briefState.decisions).map(([k, v]) => [k, t.decisions[k] || v]));
+	S.setBriefState(nv.id, { ...video.briefState, decisions, questions: [] });
+	const nsb = S.createStoryboard(nv.id, { logline: t.logline || sb.logline, summary: t.summary || sb.summary, shots: t.shots }, run.id);
+	if (sb.status === 'approved') S.setStoryboardStatus(nsb.id, 'approved');
+	emit(run.id, 'artifact', { kind: 'storyboard', videoId: nv.id, version: nsb.version, shots: t.shots.length, lang });
+	for (const s of t.shots)
+		setTimeout(() => enqueue('shot_fix', {
+			projectId: project.id, videoId: nv.id, parentId: run.id, shotKey: s.key, round: 0, title: `Shot ${s.key} — translation`,
+			direction: `Translate this shot into ${target}: every text it shows (labels, messages, buttons, sample content, times and dates) becomes the ${target} the shot brief above gives, word for word where the brief quotes it. The code it imports from outside the shot is already translated. Keep everything else as it is: layout, motion, timings, colours. Where a text grows longer, make it fit the way the original layout would (wrap, or a slightly smaller size of that text only), never cropped and never overlapping. Check a still of every state that shows text.`
+		}), 0);
+	return { videoId: nv.id, slug: nv.slug, lang, shots: t.shots.length, shared: shared.size };
 };
 
 /** Animatic: the storyboard images held for each shot's length, over the voice. Seconds to make, no agent. */
@@ -1351,7 +1435,8 @@ const HANDLERS: Record<JobKind, Handler> = {
 	ui_harvest: uiHarvest,
 	ui_login: uiLogin,
 	voice_generate: voiceGenerate,
-	animatic
+	animatic,
+	video_translate: videoTranslate
 };
 
 /** Starts lesson distillation in the project's memory queue (does not wait for the video). */

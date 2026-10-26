@@ -49,3 +49,21 @@ describe('normBeats', () => {
 		expect(JSON.parse(JSON.stringify(got))[0].t).toBe(0);
 	});
 });
+
+describe('planAfterFix', () => {
+	test('lays the fix plan over the shot as it is now and keeps what changed meanwhile', async () => {
+		const { planAfterFix } = await load();
+		const now = { intent: 'i', visual: 'old', voiceover: 'Line edited meanwhile.', voiceWords: [{ w: 'line', t: 0.3 }], beats: [{ t: 0, state: 'a' }], directorNotes: ['first'] };
+		const { data, beats } = planAfterFix(now, { beats: [{ t: 0, state: 'b' }, { t: 9, state: 'c' }], visual: ' new ', onScreenText: 'Hello' }, ['second'], 4);
+		expect(beats?.map((b) => [b.t, b.state])).toEqual([[0, 'b'], [4, 'c']]);
+		expect(data).toMatchObject({ visual: 'new', onScreenText: 'Hello', voiceover: 'Line edited meanwhile.', voiceWords: [{ w: 'line', t: 0.3 }], directorNotes: ['first', 'second'] });
+	});
+
+	test('without a plan, only the decisions are recorded', async () => {
+		const { planAfterFix } = await load();
+		const now = { intent: 'i', visual: 'v', beats: [{ t: 0, state: 'a' }] };
+		const { data, beats } = planAfterFix(now, null, ['note'], 3);
+		expect(beats).toBeNull();
+		expect(data).toEqual({ ...now, directorNotes: ['note'] });
+	});
+});

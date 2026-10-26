@@ -25,6 +25,8 @@ export interface Video {
 	format: VideoFormat;
 	targetDuration: number;
 	briefState: BriefState;
+	/** Language of this film's content when it differs from the project's (a translated version); null: the project's. */
+	language: 'en' | 'fr' | null;
 	createdAt: number;
 }
 export interface Storyboard {
@@ -184,6 +186,7 @@ const toVideo = (r: Row): Video => ({
 	format: json(r.format, { width: 1920, height: 1080, fps: 30 }),
 	targetDuration: r.target_duration,
 	briefState: { status: 'draft', decisions: {}, ignored: [], questions: [], ...json<Partial<BriefState>>(r.brief_state, {}) },
+	language: r.language === 'en' || r.language === 'fr' ? r.language : null,
 	createdAt: r.created_at
 });
 
@@ -197,12 +200,18 @@ export const getVideoBySlug = (pid: string, slug: string) => {
 	return r ? toVideo(r) : null;
 };
 
-export function createVideo(pid: string, v: { title: string; brief: string; format: VideoFormat; targetDuration: number; slug?: string }): Video {
-	let slug = slugify(v.slug || v.title);
-	for (let i = 2; getVideoBySlug(pid, slug); i++) slug = `${slugify(v.slug || v.title)}-${i}`;
+/** The slug `base` (slugified), or `base-2`, `base-3`… when a video of the project already has it. */
+export function freeSlug(pid: string, base: string): string {
+	let slug = slugify(base);
+	for (let i = 2; getVideoBySlug(pid, slug); i++) slug = `${slugify(base)}-${i}`;
+	return slug;
+}
+
+export function createVideo(pid: string, v: { title: string; brief: string; format: VideoFormat; targetDuration: number; slug?: string; language?: 'en' | 'fr' | null }): Video {
+	const slug = freeSlug(pid, v.slug || v.title);
 	const vid = id();
-	db.query('INSERT INTO videos (id, project_id, slug, title, brief, format, target_duration, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-		vid, pid, slug, v.title, v.brief, JSON.stringify(v.format), v.targetDuration, now()
+	db.query('INSERT INTO videos (id, project_id, slug, title, brief, format, target_duration, language, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+		vid, pid, slug, v.title, v.brief, JSON.stringify(v.format), v.targetDuration, v.language ?? null, now()
 	);
 	ensureDir(join(videoDir(pid, slug), 'shots'));
 	return getVideo(vid)!;
@@ -230,12 +239,14 @@ export const getStoryboard = (vid: string, version?: number) => {
 		: db.query('SELECT * FROM storyboards WHERE video_id = ? ORDER BY version DESC LIMIT 1').get(vid)) as Row | null;
 	return r ? toStoryboard(r) : null;
 };
-/** When the current take began: the creation of the latest storyboard written from scratch (revisions keep the take). */
-export const takeStart = (vid: string): number => {
-	const r = db.query(`SELECT s.created_at t FROM storyboards s LEFT JOIN runs r ON r.id = s.run_id
-		WHERE s.video_id = ? AND (r.id IS NULL OR r.kind = 'storyboard_generate') ORDER BY s.version DESC LIMIT 1`).get(vid) as { t: number } | null;
-	return r?.t ?? 0;
-};
+/** The latest storyboard that began a take: written from scratch, or translated from another film (revisions keep the take). */
+const takeRow = (vid: string) =>
+	db.query(`SELECT s.created_at t, r.kind kind FROM storyboards s LEFT JOIN runs r ON r.id = s.run_id
+		WHERE s.video_id = ? AND (r.id IS NULL OR r.kind IN ('storyboard_generate', 'video_translate')) ORDER BY s.version DESC LIMIT 1`).get(vid) as { t: number; kind: string | null } | null;
+/** When the current take began. */
+export const takeStart = (vid: string): number => takeRow(vid)?.t ?? 0;
+/** The current take is a translation: its shots came animated from the source film, their lengths are baked in. */
+export const takeIsTranslation = (vid: string): boolean => takeRow(vid)?.kind === 'video_translate';
 export const listShots = (sbid: string) => db.query('SELECT * FROM shots WHERE storyboard_id = ? ORDER BY idx').all(sbid).map((r) => toShot(r as Row));
 
 export interface StoryboardInput {

@@ -171,3 +171,24 @@ describe('importDraft re-fits a take whose script the revision kept (I3)', () =>
 		expect(shots.map((s) => s.duration)).toEqual([3, 3, 3, 2]);
 	});
 });
+
+describe('a translated film keeps the lengths of its scenes', () => {
+	test('its take counts as animated from the start; a new storyboard from scratch starts a take that is not', () => {
+		const video = mkVideo();
+		const tr = S.insertRun({ projectId: project.id, videoId: video.id, kind: 'video_translate', title: 't', input: {} });
+		const sb = S.createStoryboard(video.id, { logline: '', summary: '', shots: planned() }, tr.id);
+		expect(S.takeIsTranslation(video.id)).toBe(true);
+		expect(V.shotsBuilt(video, S.listShots(sb.id))).toBe(true);
+		const gen = S.insertRun({ projectId: project.id, videoId: video.id, kind: 'storyboard_generate', title: 'g', input: {} });
+		const fresh = S.createStoryboard(video.id, { logline: '', summary: '', shots: planned() }, gen.id);
+		expect(S.takeIsTranslation(video.id)).toBe(false);
+		expect(V.shotsBuilt(video, S.listShots(fresh.id))).toBe(false);
+	});
+
+	test('a video keeps its own language', () => {
+		const v = S.createVideo(project.id, { title: 'Fit translated', brief: '', format: { width: 1080, height: 1920, fps: 30 }, targetDuration: 10, language: 'en' });
+		expect(S.getVideo(v.id)?.language).toBe('en');
+		expect(mkVideo().language).toBeNull();
+		expect(S.freeSlug(project.id, 'Fit translated')).toBe('fit-translated-2');
+	});
+});

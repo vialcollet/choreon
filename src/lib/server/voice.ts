@@ -80,12 +80,14 @@ export function spoken(text: string | undefined): string {
 
 /**
  * The brand's pronunciation lexicon (`brand/brand.json` → `pronunciation`: `{ "Omeon": "Oméone" }`): how the
- * reader should say a word it would get wrong. Only string entries count.
+ * reader should say a word it would get wrong, for the language `lang` of the script. Only string entries count.
  */
-export function lexiconOf(brandJson: Record<string, unknown>): Record<string, string> {
-	const p = brandJson.pronunciation;
-	if (!p || typeof p !== 'object' || Array.isArray(p)) return {};
-	return Object.fromEntries(Object.entries(p as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string' && !!e[0].trim() && !!e[1].trim()));
+export function lexiconOf(brandJson: Record<string, unknown>, lang?: string): Record<string, string> {
+	const words = (p: unknown): Record<string, string> =>
+		!p || typeof p !== 'object' || Array.isArray(p) ? {} : Object.fromEntries(Object.entries(p as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string' && !!e[0].trim() && !!e[1].trim()));
+	const p = brandJson.pronunciation as Record<string, unknown> | undefined;
+	// A respelling is written for one language's reader: { "fr": { … }, "en": { … } } keeps each to its own; plain entries apply to all.
+	return { ...words(p), ...(lang && p && typeof p === 'object' ? words(p[lang]) : {}) };
 }
 
 /** The line as it should be read: each lexicon word (whole word, any case) replaced by its respelling, longest first. */
@@ -222,6 +224,7 @@ export function wordsPerShot(durations: number[], track: Pick<VoiceTrack, 'words
 
 /** True when a shot of the current take is already rendered: the shots' lengths are baked into their animation. */
 export function shotsBuilt(video: { id: string }, shots: S.Shot[]): boolean {
+	if (S.takeIsTranslation(video.id)) return true; // the scenes came animated from the source film
 	const since = S.takeStart(video.id);
 	return shots.some((s) => S.listRenders(video.id, s.key).some((x) => x.createdAt >= since));
 }
