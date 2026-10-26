@@ -23,6 +23,18 @@ export function joinTimes(list, key = 'w', merge = (a) => ({ ...a })) {
 	return out;
 }
 
+/**
+ * Heard words as tokens: a transcript word that normalizes to several ("a.m." → "a" "m", "e-mail" → "e" "mail")
+ * becomes one token per part, sharing its time evenly, so it lines up with the script's tokens. `n` is the token.
+ */
+export function splitHeard(words) {
+	return words.flatMap((h) => {
+		const tk = tokens(h.w);
+		if (tk.length === 1) return [{ ...h, n: tk[0] }];
+		return tk.map((n, i) => ({ ...h, w: n, n, t: h.t + ((h.end - h.t) * i) / tk.length, end: h.t + ((h.end - h.t) * (i + 1)) / tk.length }));
+	});
+}
+
 function lev(a, b) {
 	const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
 	for (let j = 1; j <= b.length; j++) d[0][j] = j;
@@ -58,6 +70,19 @@ export function align(script, heard) {
 		else j--;
 	}
 	return map;
+}
+
+/**
+ * Of several versions of the script (each a list of { w, li } tokens), the one the heard tokens `got` match best:
+ * with its alignment, and how many of its words were not heard (`missing`) and heard words it lacks (`extra`).
+ */
+export function closest(scripts, got) {
+	return scripts
+		.map((script) => {
+			const map = align(script.map((s) => s.w), got);
+			return { script, map, missing: map.filter((x) => x < 0).length, extra: got.length - map.filter((x) => x >= 0).length };
+		})
+		.sort((a, b) => a.missing + a.extra - (b.missing + b.extra))[0];
 }
 
 /**

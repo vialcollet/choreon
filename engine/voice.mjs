@@ -13,7 +13,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { align, joinTimes, norm, placeLines, tokens } from './voice-align.mjs';
+import { closest, joinTimes, placeLines, splitHeard, tokens } from './voice-align.mjs';
 
 function args(argv) {
 	const out = {};
@@ -100,8 +100,11 @@ async function main() {
 	const said = lines.map((l) => (typeof l.say === 'string' && l.say.trim()) || l.text.trim());
 	// One paragraph per shot: the reader pauses between them, the way the film cuts.
 	const text = said.join('\n\n');
-	const script = joinTimes(said.flatMap((t, li) => tokens(t).map((w) => ({ w, li }))));
-	const noteWords = tokens(style).filter((w) => w.length > 5 && !script.some((s) => s.w === w));
+	const scriptOf = (texts) => joinTimes(texts.flatMap((t, li) => tokens(t).map((w) => ({ w, li }))));
+	// The transcript may write a respelled name as said ("Oh-may-on") or as it is spelled ("Omeon"): the take is
+	// checked against both versions of the script, and the closer one counts.
+	const scripts = [scriptOf(said), scriptOf(lines.map((l) => l.text.trim()))].filter((s, i, all) => i === 0 || s.map((x) => x.w).join(' ') !== all[0].map((x) => x.w).join(' '));
+	const noteWords = tokens(style).filter((w) => w.length > 5 && !scripts.some((script) => script.some((s) => s.w === w)));
 	const log = [];
 	for (let k = 1; k <= tries; k++) {
 		const r = await speak(text, voice, style);
@@ -109,12 +112,10 @@ async function main() {
 		const wav = wavOf(clean(r.pcm, r.rate), r.rate);
 		const heard = await transcribe(wav);
 		// Heard words, normalized (n) with the hours joined the way the script's are; w keeps what was heard.
-		const words = joinTimes(heard.words.map((x) => ({ ...x, n: norm(x.w) })).filter((x) => x.n), 'n', (a, b) => ({ ...a, w: `${a.w} ${b.w}`, end: b.end }));
+		const words = joinTimes(splitHeard(heard.words), 'n', (a, b) => ({ ...a, w: `${a.w} ${b.w}`, end: b.end }));
 		const got = words.map((x) => x.n);
 		if (!got.length) { log.push(`try ${k}: rejected (empty transcript)`); continue; }
-		const map = align(script.map((s) => s.w), got);
-		const missing = map.filter((x) => x < 0).length;
-		const extra = got.length - map.filter((x) => x >= 0).length;
+		const { script, map, missing, extra } = closest(scripts, got);
 		const leaked = noteWords.some((w) => got.includes(w));
 		const tol = Math.max(1, Math.round(script.length * 0.04));
 		if (leaked || missing > tol || extra > tol + 2) {

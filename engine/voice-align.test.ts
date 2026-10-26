@@ -94,3 +94,20 @@ describe('voice-align', () => {
 		expect(A.joinTimes([{ w: '8h30' }, { w: '120' }, { w: 'h' }]).map((x: any) => x.w)).toEqual(['8h30', '120', 'h']);
 	});
 });
+
+describe('heard words that are not the script words one for one', () => {
+	test('splitHeard: a word that normalizes to several tokens ("a.m.") becomes one per part, sharing its time', async () => {
+		const A: any = await load();
+		const got = A.splitHeard([{ w: '8', t: 0, end: 0.2 }, { w: 'a.m.', t: 0.2, end: 0.6 }, { w: '—', t: 0.6, end: 0.6 }]);
+		expect(got.map((x: any) => [x.n, x.t, x.end])).toEqual([['8', 0, 0.2], ['a', 0.2, 0.4], ['m', 0.4, 0.6]]);
+	});
+
+	test('closest: a respelled name may be written either way; the closer version of the script counts', async () => {
+		const A: any = await load();
+		const said = scriptOf(A, [{ text: 'Oh-may-on answers.' }]), spelled = scriptOf(A, [{ text: 'Omeon answers.' }]);
+		const best = A.closest([said, spelled], ['omeon', 'answers']);
+		expect(best.script).toBe(spelled);
+		expect([best.missing, best.extra]).toEqual([0, 0]);
+		expect(A.closest([said, spelled], ['oh', 'may', 'on', 'answers']).script).toBe(said);
+	});
+});

@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ffmpegPath from 'ffmpeg-static';
-import { align, joinTimes, tokens } from './voice-align.mjs';
+import { align, joinTimes, splitHeard, tokens } from './voice-align.mjs';
 
 const NBSP = ' ';
 
@@ -35,12 +35,7 @@ export function displayWords(text) {
  * alignment as the voice check), the words the transcript missed spread over the gap between their neighbours.
  */
 export function timeWords(lines, heardWords) {
-	const heard = [];
-	for (const h of heardWords) {
-		const tk = tokens(h.w);
-		tk.forEach((n, i) => heard.push({ n, t: h.t + ((h.end - h.t) * i) / tk.length, end: h.t + ((h.end - h.t) * (i + 1)) / tk.length }));
-	}
-	const got = joinTimes(heard, 'n', (a, b) => ({ ...a, end: b.end }));
+	const got = joinTimes(splitHeard(heardWords), 'n', (a, b) => ({ ...a, end: b.end }));
 	const shown = lines.map((l, li) => displayWords(l.text).map((text) => ({ text, li })));
 	const flat = shown.flat();
 	const script = flat.flatMap((d, di) => joinTimes(tokens(d.text).map((n) => ({ n })), 'n').map((x) => ({ n: x.n, di })));
