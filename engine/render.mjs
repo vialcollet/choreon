@@ -7,7 +7,8 @@
 //        [--project <dir>] [--fps 30] [--from 0] [--to <dur>] [--sub 1] [--scale 1]
 //        [--audio file] [--stills 0,1.5,3 --stills-dir <dir>] [--crf 16]
 //
-// The internal static server exposes: /engine/* (runtime), /project/* (project folder,
+// --scale multiplies the output size, the scene's layout unchanged (--scale 2: a 1920×1080 scene renders in 4K;
+// --scale 0.5: quick checks). The internal static server exposes: /engine/* (runtime), /project/* (project folder,
 // including brand/ and library/), /scene/* (shot folder). Output: one JSON line on stdout.
 
 import { chromium } from 'playwright';
@@ -69,13 +70,23 @@ export async function render(opts) {
 	const browser = await chromium.launch();
 	const errors = [];
 	try {
-		const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-		page.on('pageerror', (e) => errors.push(String(e)));
-		page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-		await page.goto(`http://127.0.0.1:${port}/scene/${sceneFile.slice(sceneDir.length + 1)}?scale=${scale}&preview=0`);
-		await page.waitForFunction(() => typeof window.seek === 'function' && window.SCENE, null, { timeout: 15000 });
+		const open = async (viewport, deviceScaleFactor, urlScale) => {
+			const page = await browser.newPage({ viewport, deviceScaleFactor });
+			page.on('pageerror', (e) => errors.push(String(e)));
+			page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+			await page.goto(`http://127.0.0.1:${port}/scene/${sceneFile.slice(sceneDir.length + 1)}?scale=${urlScale}&preview=0`);
+			await page.waitForFunction(() => typeof window.seek === 'function' && window.SCENE, null, { timeout: 15000 });
+			return page;
+		};
+		let page = await open({ width: 1920, height: 1080 }, 1, scale);
 		const S = await page.evaluate(() => window.SCENE);
-		await page.setViewportSize({ width: Math.round(S.width * scale), height: Math.round(S.height * scale) });
+		if (S.mode === 'dom' && scale !== 1) {
+			// A DOM scene lays out in CSS pixels at its own size: scaling is the browser's pixel density, so the layout
+			// is the same at every scale (a canvas scene scales its own backing store instead).
+			await page.close();
+			errors.length = 0;
+			page = await open({ width: S.width, height: S.height }, scale, 1);
+		} else await page.setViewportSize({ width: Math.round(S.width * scale), height: Math.round(S.height * scale) });
 		await page.evaluate(() => window.seek(0));
 
 		const fps = Number(opts.fps || S.fps || 30);
