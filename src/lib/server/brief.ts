@@ -24,6 +24,17 @@ export function settle(state: BriefState, axes = briefAxes()): BriefState {
 	return { ...state, questions, status };
 }
 
+/**
+ * The brief text changed: the decisions the director only inferred from the old text are dropped, so that the next
+ * review derives them from the new one (otherwise an edited end line or a new call to action never reaches the
+ * decisions). What the user answered or edited stays.
+ */
+export function forgetInferred(state: BriefState): BriefState {
+	const decisions = { ...state.decisions };
+	for (const k of state.inferred ?? []) delete decisions[k];
+	return { ...state, decisions, inferred: [] };
+}
+
 /** Decisions made, for the director's and animator's instructions. */
 export function decisionsBlock(state: BriefState): string {
 	const axes = briefAxes();

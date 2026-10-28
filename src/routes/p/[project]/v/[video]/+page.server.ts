@@ -1,5 +1,5 @@
 import { translate } from '$lib/i18n';
-import { briefAxes, settle } from '$lib/server/brief';
+import { briefAxes, forgetInferred, settle } from '$lib/server/brief';
 import { enqueue } from '$lib/server/jobs';
 import { fileUrl } from '$lib/server/paths';
 import { getRef, videoRefIds, type Ref } from '$lib/server/refs';
@@ -32,7 +32,10 @@ export const actions: Actions = {
 		if (!v) return;
 		const brief = String(f.get('brief') ?? '');
 		S.updateVideo(v.id, { brief, targetDuration: Number(f.get('duration')) || v.targetDuration });
-		if (brief !== v.brief) review(S.getVideo(v.id)!);
+		if (brief !== v.brief) {
+			S.setBriefState(v.id, forgetInferred(v.briefState));
+			review(S.getVideo(v.id)!);
+		}
 	},
 	/**
 	  * Interview answers, per axis: t_<axis> (free text, takes priority), o_<axis> (option),
@@ -68,7 +71,9 @@ export const actions: Actions = {
 		if (f.get('ignore')) ignored = [...ignored, field];
 		else if (value) decisions[field] = value;
 		const status = v.briefState.status === 'ready' ? 'interview' : v.briefState.status;
-		S.setBriefState(v.id, settle({ ...v.briefState, decisions, ignored, status }));
+		// An axis the user edits or reopens is theirs from now on, no longer the director's inference.
+		const inferred = (v.briefState.inferred ?? []).filter((k) => k !== field);
+		S.setBriefState(v.id, settle({ ...v.briefState, decisions, inferred, ignored, status }));
 	},
 	/** Reference preselection for this video (brief + decisions), attached automatically. */
 	scout: async ({ params, locals }) => {

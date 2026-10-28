@@ -385,10 +385,16 @@ Answer only with this JSON:
 	const known = new Set(axes.map((a) => a.key));
 	const decisions = { ...prev.decisions };
 	const ignored = [...prev.ignored];
-	for (const [k, v] of Object.entries(parsed.decisions ?? {})) if (known.has(k) && !ignored.includes(k) && !decisions[k] && String(v).trim()) decisions[k] = String(v).trim();
+	// What the director settles itself is marked inferred: a later change of the brief re-derives it (forgetInferred).
+	const inferred = new Set(prev.inferred ?? []);
+	for (const [k, v] of Object.entries(parsed.decisions ?? {}))
+		if (known.has(k) && !ignored.includes(k) && !decisions[k] && String(v).trim()) {
+			decisions[k] = String(v).trim();
+			inferred.add(k);
+		}
 	for (const k of parsed.ignored ?? []) if (known.has(k) && !decisions[k] && !ignored.includes(k)) ignored.push(k);
 	const questions = (parsed.questions ?? []).filter((q) => q && known.has(q.field)).slice(0, 7);
-	const next = settle({ status: 'interview', decisions, ignored, questions, summary: parsed.summary ?? prev.summary, reviewedAt: Date.now() }, axes);
+	const next = settle({ status: 'interview', decisions, inferred: [...inferred].filter((k) => decisions[k]), ignored, questions, summary: parsed.summary ?? prev.summary, reviewedAt: Date.now() }, axes);
 	// An axis left open without a question: the director forgot it → minimal question on its typical directions.
 	for (const k of openAxes(next, axes)) {
 		if (next.questions.some((q) => q.field === k)) continue;

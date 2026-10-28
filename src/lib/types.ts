@@ -95,6 +95,8 @@ export interface BriefState {
 	status: 'draft' | 'reviewing' | 'interview' | 'ready';
 	/** Decisions made (axis → direction), deduced from the brief or answered. */
 	decisions: Record<string, string>;
+	/** Decided axes the director inferred from the brief text (not answered by the user): re-derived when the brief changes. */
+	inferred?: string[];
 	/** Axes explicitly dropped for this video (nothing to impose). */
 	ignored: string[];
 	questions: BriefQuestion[];

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { BriefState, VideoFormat } from '$lib/types';
 import { canAccessProject, visibleProjects } from './access';
 import { agentEnv } from './agent';
-import { briefAxes, settle } from './brief';
+import { briefAxes, forgetInferred, settle } from './brief';
 import { brandCard } from './brandcard';
 import { db, id, json, now } from './db';
 import { FORMATS } from './defaults';
@@ -243,7 +243,7 @@ function studioTools(locals: App.Locals, report: (t: GuideTool) => void) {
 				const v = video(a.projectId, a.video);
 				S.updateVideo(v.id, { brief: a.brief, targetDuration: a.durationSeconds ?? v.targetDuration });
 				if (a.brief !== v.brief) {
-					S.setBriefState(v.id, { ...v.briefState, status: 'reviewing' });
+					S.setBriefState(v.id, { ...forgetInferred(v.briefState), status: 'reviewing' });
 					enqueue('brief_review', { projectId: v.projectId, videoId: v.id });
 					return { ok: true, framingReview: 'started' };
 				}
