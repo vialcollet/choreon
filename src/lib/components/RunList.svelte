@@ -34,6 +34,7 @@
 			<b>{tt(openRun.title)}</b>
 			<span class="spacer"></span>
 			{#if openRun.status === 'running' || openRun.status === 'queued'}<button class="small danger" onclick={() => api.cancel(openRun.id)}>{t('Stop')}</button>{/if}
+			{#if openRun.status === 'error' || openRun.status === 'cancelled'}<button class="small" title={t('Start it again with the same input (a fix loop resumes at the same round)')} onclick={async () => (open = (await api.retry(openRun.id)).id)}>{t('Retry')}</button>{/if}
 			<button class="ghost small" onclick={() => (open = null)}><X size={14} /></button>
 		</div>
 		{#if openRun.error}<p class="small" style="color: var(--err); margin: 0 0 8px">{t(openRun.error)}</p>{/if}

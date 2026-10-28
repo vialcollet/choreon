@@ -219,6 +219,7 @@ export default {
 
 	// API
 	'unknown task': 'tâche inconnue',
+	'Only a failed or stopped run can be retried': 'Seul un run en échec ou arrêté peut être relancé',
 	'Only studio administrators can harvest the studio itself': 'Seuls les administrateurs du studio peuvent récolter le studio lui-même',
 	'Only studio administrators can save a browser session': 'Seuls les administrateurs du studio peuvent enregistrer une session de navigateur',
 	'video not found': 'vidéo introuvable',

@@ -172,6 +172,8 @@ export default {
 	// RunList / RunLog
 	'No runs.': 'Aucun run.',
 	'Stop': 'Arrêter',
+	'Retry': 'Relancer',
+	'Start it again with the same input (a fix loop resumes at the same round)': 'Le relancer avec la même entrée (une boucle de correction reprend au même tour)',
 	'agent finished · {cost} $ · {turns} turns': 'fin de l\'agent · {cost} $ · {turns} tours',
 	'Waiting…': 'En attente…',
 

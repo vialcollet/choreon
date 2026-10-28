@@ -17,6 +17,7 @@ export const api = {
 		}),
 	lesson: (method: 'POST' | 'PATCH' | 'DELETE', body: Record<string, unknown>) => call(method, '/api/lessons', body),
 	cancel: (runId: string) => call('POST', `/api/runs/${runId}/cancel`),
+	retry: (runId: string) => call<{ id: string }>('POST', `/api/runs/${runId}/retry`),
 	note: (body: Record<string, unknown>) => call<Record<string, unknown>>('POST', '/api/notes', body),
 	noteStatus: (id: string, status: string) => call('PATCH', '/api/notes', { id, status }),
 	deleteNote: (id: string) => call('DELETE', `/api/notes?id=${id}`)
