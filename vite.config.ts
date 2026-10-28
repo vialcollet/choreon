@@ -11,5 +11,12 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
-	server: { host: '127.0.0.1', port: 5610, strictPort: true }
+	server: {
+		host: '127.0.0.1',
+		port: 5610,
+		strictPort: true,
+		// data/ is the studio's working state (renders, kits, the database), not source code. Watching it is useless, and on
+		// Windows a watched folder cannot be renamed: the harvest's staging swap (captureInto) failed with EPERM.
+		watch: { ignored: ['**/data/**'] }
+	}
 });
