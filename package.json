@@ -16,20 +16,20 @@
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
-		"@types/bun": "^1.4.4",
-		"svelte": "^5.57.2",
-		"svelte-check": "^4.7.7",
+		"@types/bun": "^1.4.5",
+		"svelte": "^5.58.0",
+		"svelte-check": "^4.7.8",
 		"typescript": "^6.0.3",
-		"vite": "^8.3.5"
+		"vite": "^8.3.8"
 	},
 	"dependencies": {
-		"@anthropic-ai/claude-agent-sdk": "^0.3.310",
-		"@lucide/svelte": "^1.61.0",
+		"@anthropic-ai/claude-agent-sdk": "^0.3.329",
+		"@lucide/svelte": "^1.77.0",
 		"@modelcontextprotocol/sdk": "^1.32.2",
-		"better-auth": "^1.7.13",
+		"better-auth": "^1.7.26",
 		"ffmpeg-static": "^5.3.0",
-		"marked": "^18.1.1",
-		"playwright": "^1.64.1",
+		"marked": "^18.2.1",
+		"playwright": "^1.65.1",
 		"zod": "^4.6.7"
 	},
 	"overrides": {
